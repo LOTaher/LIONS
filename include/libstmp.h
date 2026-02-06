@@ -37,17 +37,9 @@ void stmp_log_print(const char* service, const char* message, stmp_log_print_typ
 // ===============================================================
 // Admiral
 // ===============================================================
-typedef enum {
-    LOW,
-    MEDIUM,
-    HIGH
-} stmp_admiral_priority;
-
 typedef struct {
     u8 destination;
     u8 sender;
-    // bool ack;
-    stmp_admiral_priority priority;
     stmp_packet packet;
 } stmp_admiral_message;
 

@@ -3,10 +3,10 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <pthread.h>
-#include "libstmp.h"
-#include "lt_arena.h"
-#include "lt_base.h"
-#include "stmp.h"
+#include "../include/libstmp.h"
+#include "../include/lt_arena.h"
+#include "../include/lt_base.h"
+#include "../include/stmp.h"
 
 const char* stmp_log_print_type_colors[] = {
     STMP_LOG_COLOR_INFO,
@@ -170,11 +170,7 @@ stmp_error stmp_admiral_parse_and_queue_packet(stmp_admiral_queue* queue, stmp_p
         return STMP_ERR_BAD_PAYLOAD;
     }
 
-    stmp_admiral_priority priority = packet->payload[2];
-
-    if (priority < LOW || priority > HIGH) return STMP_ERR_BAD_PAYLOAD;
-
-    stmp_admiral_message message = {destination, sender, priority, *packet};
+    stmp_admiral_message message = {destination, sender, *packet};
     stmp_admiral_queue_enqueue(queue, &message);
 
     stmp_log_print("admiral", "Recieved and added message to queue", INFO);

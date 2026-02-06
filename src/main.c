@@ -1,7 +1,7 @@
-#include "lt_arena.h"
-#include "lt_base.h"
-#include "stmp.h"
-#include "libstmp.h"
+#include "../include/lt_arena.h"
+#include "../include/lt_base.h"
+#include "../include/stmp.h"
+#include "../include/libstmp.h"
 
 #include <netinet/in.h>
 #include <stddef.h>
@@ -113,7 +113,6 @@ void* network_loop(void* args) {
     return 0;
 }
 
-
 void* admiral_loop(void* args) {
     stmp_admiral_admiral_args* a = (stmp_admiral_admiral_args*)args;
     for (;;) {
@@ -125,6 +124,8 @@ void* admiral_loop(void* args) {
             continue;
         }
 
+        // TODO(laith): within this struct, add destinationIP, destinationPort, etc. can rename
+        // to stmp_admiral_get_endpoint_metadata
         stmp_admiral_message_endpoint_names endpoints = stmp_admiral_get_endpoint(msg);
         stmp_admiral_sanitize_message(msg);
 
@@ -136,6 +137,7 @@ void* admiral_loop(void* args) {
     }
 
     // TODO(laith): send the net packet, for now lets log to test
+    // this would consist of mapping the endpoint ids to a port and IP
 
     return 0;
 }
