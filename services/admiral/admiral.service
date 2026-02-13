@@ -1,0 +1,12 @@
+[Unit]
+Description=LIONS Message Broker
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/admiral
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

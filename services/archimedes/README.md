@@ -1,6 +1,6 @@
 # archimedes
 
-archimedes is a port forwarding daemon that keeps services port forwarded via SSH up 24/7.
+archimedes is the LIONS port forwarding daemon that keeps self-hosted services port forwarded via SSH up 24/7.
 
 An `uber.json` file is required that follows the following format:
 

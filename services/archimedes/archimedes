@@ -42,7 +42,7 @@ def port_forward_command(remote, local, host):
     ]
 
 def load_configuration():
-    with open("uber.json", "r") as f:
+    with open("/etc/uber.json", "r") as f:
         config = json.load(f)
 
     for service, metadata in config.items():

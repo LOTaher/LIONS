@@ -1,0 +1,12 @@
+[Unit]
+Description=LIONS Port Forwarding Daemon
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/archimedes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
