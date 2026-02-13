@@ -1,3 +1,20 @@
+/*  liblmp.c - Utilities for the LIONS Middleware Protocol
+    Copyright (C) 2026 splatte.dev
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>. */
+
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -5,37 +22,37 @@
 #include <sys/types.h>
 #include <netdb.h>
 
-#include "../include/libstmp.h"
+#include "../include/liblmp.h"
 #include "../include/lt_arena.h"
 #include "../include/lt_base.h"
-#include "../include/stmp.h"
+#include "../include/lmp.h"
 
 // ===============================================================
 // Net
 // ===============================================================
 
-stmp_error stmp_net_send_packet(u32 fd, const stmp_packet* packet, stmp_result* result) {
-    u8 buffer[STMP_PACKET_MAX_SIZE];
-    stmp_packet_serialize(buffer, sizeof(buffer), packet, result);
-    if (result->error != STMP_ERR_NONE) {
+lmp_error lmp_net_send_packet(u32 fd, const lmp_packet* packet, lmp_result* result) {
+    u8 buffer[LMP_PACKET_MAX_SIZE];
+    lmp_packet_serialize(buffer, sizeof(buffer), packet, result);
+    if (result->error != LMP_ERR_NONE) {
         return result->error;
     }
 
     ssize_t sent = send(fd, buffer, result->size, 0);
     if (sent < 0) {
-        return STMP_ERR_BAD_INPUT;
+        return LMP_ERR_BAD_INPUT;
     }
 
     return result->error;
 }
 
-stmp_error stmp_net_recv_packet(u32 fd, u8* buffer, size_t size, stmp_packet* packet, stmp_result* result) {
+lmp_error lmp_net_recv_packet(u32 fd, u8* buffer, size_t size, lmp_packet* packet, lmp_result* result) {
     u8 terminated = 0;
     u8 invalid = 0;
     u64 packet_size = 0;
 
     for (;;) {
-        u8 scratch[STMP_PACKET_MAX_SIZE];
+        u8 scratch[LMP_PACKET_MAX_SIZE];
 
         int bytes = recv(fd, scratch, sizeof(scratch), 0);
         if (bytes <= 0) {
@@ -51,7 +68,7 @@ stmp_error stmp_net_recv_packet(u32 fd, u8* buffer, size_t size, stmp_packet* pa
                 break;
             }
 
-            if (scratch[i] == STMP_PACKET_TERMINATE) {
+            if (scratch[i] == LMP_PACKET_TERMINATE) {
                 terminated = 1;
                 break;
             }
@@ -61,18 +78,18 @@ stmp_error stmp_net_recv_packet(u32 fd, u8* buffer, size_t size, stmp_packet* pa
     }
 
     if (terminated) {
-        stmp_packet_deserialize(buffer, packet_size, packet, result);
+        lmp_packet_deserialize(buffer, packet_size, packet, result);
         return result->error;
     }
 
     if (invalid) {
-        return STMP_ERR_BAD_SIZE;
+        return LMP_ERR_BAD_SIZE;
     }
 
-    return STMP_ERR_BAD_INPUT;
+    return LMP_ERR_BAD_INPUT;
 }
 
-char* stmp_net_get_client(u32 fd, mem_arena* arena) {
+char* lmp_net_get_client(u32 fd, mem_arena* arena) {
     struct sockaddr clientAddr = {0};
     socklen_t clientAddrLen = sizeof(clientAddr);
     int g = getpeername(fd, &clientAddr, &clientAddrLen);
@@ -101,7 +118,7 @@ char* stmp_net_get_client(u32 fd, mem_arena* arena) {
 }
 
 
-// stmp_error stmp_net_send_packet_to_admiral(char* endpoint, const stmp_packet* packet, stmp_result* result) {
+// lmp_error lmp_net_send_packet_to_admiral(char* endpoint, const lmp_packet* packet, lmp_result* result) {
 //     mem_arena* arena = arena_create(KiB(8));
 //
 //     return NULL;
@@ -111,25 +128,25 @@ char* stmp_net_get_client(u32 fd, mem_arena* arena) {
 // Log
 // ===============================================================
 
-const char* stmp_log_print_type_colors[] = {
-    STMP_LOG_COLOR_INFO,
-    STMP_LOG_COLOR_WARN,
-    STMP_LOG_COLOR_ERROR
+const char* lmp_log_print_type_colors[] = {
+    LMP_LOG_COLOR_INFO,
+    LMP_LOG_COLOR_WARN,
+    LMP_LOG_COLOR_ERROR
 };
 
-void stmp_log_print(const char* service, const char* message, stmp_log_print_type type) {
+void lmp_log_print(const char* service, const char* message, lmp_log_print_type type) {
 	time_t timestamp = time(NULL);
 	struct tm* time_info = localtime(&timestamp);
 
     switch (type) {
-        case STMP_PRINT_TYPE_INFO:
-            fprintf(stderr, "%s[%s] %d:%d:%d [INFO]: %s%s\n", stmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, STMP_LOG_COLOR_RESET);
+        case LMP_PRINT_TYPE_INFO:
+            fprintf(stderr, "%s[%s] %d:%d:%d [INFO]: %s%s\n", lmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, LMP_LOG_COLOR_RESET);
             return;
-        case STMP_PRINT_TYPE_WARN:
-            fprintf(stderr, "%s[%s] %d:%d:%d [WARN]: %s%s\n", stmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, STMP_LOG_COLOR_RESET);
+        case LMP_PRINT_TYPE_WARN:
+            fprintf(stderr, "%s[%s] %d:%d:%d [WARN]: %s%s\n", lmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, LMP_LOG_COLOR_RESET);
             return;
-        case STMP_PRINT_TYPE_ERROR:
-            fprintf(stderr, "%s[%s] %d:%d:%d [ERROR]: %s%s\n", stmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, STMP_LOG_COLOR_RESET);
+        case LMP_PRINT_TYPE_ERROR:
+            fprintf(stderr, "%s[%s] %d:%d:%d [ERROR]: %s%s\n", lmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, LMP_LOG_COLOR_RESET);
             return;
     }
 }
@@ -138,13 +155,13 @@ void stmp_log_print(const char* service, const char* message, stmp_log_print_typ
 // Admiral
 // ===============================================================
 
-char* stmp_admiral_endpoints[] = {
+char* lmp_admiral_endpoints[] = {
     "admiral",
     "hotel",
     "scheduler",
 };
 
-void stmp_admiral_queue_init(stmp_admiral_queue* queue, u8 capacity) {
+void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
     mem_arena* arena = arena_create(MiB(10));
     queue->arena = arena;
     queue->size = 0;
@@ -152,12 +169,12 @@ void stmp_admiral_queue_init(stmp_admiral_queue* queue, u8 capacity) {
     queue->head = 0;
     queue->tail = 0;
 
-    queue->messages = arena_push(queue->arena, sizeof(stmp_admiral_message*) * capacity);
+    queue->messages = arena_push(queue->arena, sizeof(lmp_admiral_message*) * capacity);
 
     pthread_mutex_init(&queue->mutex, NULL);
 }
 
-s8 stmp_admiral_queue_enqueue(stmp_admiral_queue* queue, const stmp_admiral_message* message) {
+s8 lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, const lmp_admiral_message* message) {
     pthread_mutex_lock(&queue->mutex);
 
     if (queue->size >= queue->capacity) {
@@ -165,7 +182,7 @@ s8 stmp_admiral_queue_enqueue(stmp_admiral_queue* queue, const stmp_admiral_mess
         return -1;
     }
 
-    stmp_admiral_message* allocated = arena_push(queue->arena, sizeof(stmp_admiral_message));
+    lmp_admiral_message* allocated = arena_push(queue->arena, sizeof(lmp_admiral_message));
 
     *allocated = *message;
 
@@ -177,7 +194,7 @@ s8 stmp_admiral_queue_enqueue(stmp_admiral_queue* queue, const stmp_admiral_mess
     return 1;
 }
 
-stmp_admiral_message* stmp_admiral_queue_dequeue(stmp_admiral_queue* queue) {
+lmp_admiral_message* lmp_admiral_queue_dequeue(lmp_admiral_queue* queue) {
     pthread_mutex_lock(&queue->mutex);
 
     if (queue->size == 0) {
@@ -185,7 +202,7 @@ stmp_admiral_message* stmp_admiral_queue_dequeue(stmp_admiral_queue* queue) {
         return NULL;
     }
 
-    stmp_admiral_message* msg = queue->messages[queue->head++];
+    lmp_admiral_message* msg = queue->messages[queue->head++];
 
     queue->size--;
 
@@ -205,7 +222,7 @@ stmp_admiral_message* stmp_admiral_queue_dequeue(stmp_admiral_queue* queue) {
 // this function ends, we can safely pop the packet memory of the network arena and start again
 //
 // Do NOT share memory across threads!
-s8 stmp_admiral_add_packet_to_queue(stmp_admiral_queue* queue, stmp_packet* packet, char* endpoint) {
+s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet, char* endpoint) {
     char logBuffer[255] = {0};
 
     // NOTE(laith): this should be [dest][sender][EMPTY PAYLOAD BYTE] at the minimum
@@ -225,7 +242,7 @@ s8 stmp_admiral_add_packet_to_queue(stmp_admiral_queue* queue, stmp_packet* pack
         case ADMIRAL:
             if (strcmp(endpoint, "admiral") != 0) {
                 snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [admiral]", endpoint);
-                stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_ERROR);
+                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
                 return -1;
             }
 
@@ -233,7 +250,7 @@ s8 stmp_admiral_add_packet_to_queue(stmp_admiral_queue* queue, stmp_packet* pack
         case HOTEL:
             if (strcmp(endpoint, "hotel") != 0) {
                 snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [hotel]", endpoint);
-                stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_ERROR);
+                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
                 return -1;
             }
 
@@ -241,30 +258,30 @@ s8 stmp_admiral_add_packet_to_queue(stmp_admiral_queue* queue, stmp_packet* pack
         case SCHEDULER:
             if (strcmp(endpoint, "scheduler") != 0) {
                 snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [scheduler]", endpoint);
-                stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_ERROR);
+                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
                 return -1;
             }
 
             break;
     }
 
-    stmp_admiral_message message = {destination, sender, *packet};
-    s8 e = stmp_admiral_queue_enqueue(queue, &message);
+    lmp_admiral_message message = {destination, sender, *packet};
+    s8 e = lmp_admiral_queue_enqueue(queue, &message);
     if (e == -1) {
         snprintf(logBuffer, sizeof(logBuffer), "Could not enqueue message from [%s]", endpoint);
-        stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_ERROR);
+        lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
         return -1;
     }
 
     snprintf(logBuffer, sizeof(logBuffer), "Recieved and added message from [%s] to queue", endpoint);
-    stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_INFO);
+    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
 
     return 1;
 }
 
 // NOTE(laith): probably want some further checks here but given the checks within the enqueue call
 // and the protocol itself, it should be fine?
-void stmp_admiral_sanitize_message(stmp_admiral_message* message) {
+void lmp_admiral_sanitize_message(lmp_admiral_message* message) {
     u64 sanitizedPayloadSize = message->packet.payload_length - 2;
     u8 sanitizedPayload[sanitizedPayloadSize];
 
@@ -277,15 +294,15 @@ void stmp_admiral_sanitize_message(stmp_admiral_message* message) {
     message->packet.payload_length = sanitizedPayloadSize;
 }
 
-void stmp_admiral_invalidate_packet(stmp_packet* packet) {
-    packet->type = STMP_TYPE_INVALID;
-    packet->arg = STMP_ARG_INVALID_PAYLOAD;
-    packet->flags = STMP_FLAGS_NONE;
-    packet->payload = STMP_PAYLOAD_EMPTY;
+void lmp_admiral_invalidate_packet(lmp_packet* packet) {
+    packet->type = LMP_TYPE_INVALID;
+    packet->arg = LMP_ARG_INVALID_PAYLOAD;
+    packet->flags = LMP_FLAGS_NONE;
+    packet->payload = LMP_PAYLOAD_EMPTY;
     packet->payload_length = 1;
 }
 
-char* stmp_admiral_map_client_to_endpoint(char* client) {
+char* lmp_admiral_map_client_to_endpoint(char* client) {
     if (strcmp(client, ADMIRAL_ENDPOINT_ADMIRAL) == 0) {
         return "admiral";
     }
@@ -307,7 +324,7 @@ static char* endpoint[] = {
     "scheduler"
 };
 
-char* stmp_admiral_map_id_to_endpoint(u8 id) {
+char* lmp_admiral_map_id_to_endpoint(u8 id) {
     return endpoint[id];
 }
 

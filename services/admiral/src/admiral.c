@@ -1,3 +1,20 @@
+/*  main.c - Entrypoint to the admiral, the LIONS distributed system message broker
+    Copyright (C) 2026 splatte.dev
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>. */
+
+
 #include <netinet/in.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -9,11 +26,11 @@
 
 #include "../include/lt_arena.h"
 #include "../include/lt_base.h"
-#include "../include/stmp.h"
-#include "../include/libstmp.h"
+#include "../include/lmp.h"
+#include "../include/liblmp.h"
 
 void* network_loop(void* args) {
-    stmp_admiral_network_args* a = (stmp_admiral_network_args*)args;
+    lmp_admiral_network_args* a = (lmp_admiral_network_args*)args;
 
     mem_arena* networkArena = arena_create(KiB(8));
 
@@ -21,13 +38,13 @@ void* network_loop(void* args) {
 
     int socketFd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketFd == -1) {
-        stmp_log_print("admiral", "Failed to create socket", STMP_PRINT_TYPE_ERROR);
+        lmp_log_print("admiral", "Failed to create socket", LMP_PRINT_TYPE_ERROR);
         return NULL;
     }
 
     int opt = 1;
     if (setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        stmp_log_print("admiral", "Failed to set socket option", STMP_PRINT_TYPE_ERROR);
+        lmp_log_print("admiral", "Failed to set socket option", LMP_PRINT_TYPE_ERROR);
         close(socketFd);
         return NULL;
     }
@@ -39,20 +56,20 @@ void* network_loop(void* args) {
 
     int b = bind(socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
     if (b == -1) {
-        stmp_log_print("admiral", "Failed to bind to socket", STMP_PRINT_TYPE_ERROR);
+        lmp_log_print("admiral", "Failed to bind to socket", LMP_PRINT_TYPE_ERROR);
         close(socketFd);
         return NULL;
     }
 
     int l = listen(socketFd, ADMIRAL_BACKLOG);
     if (l == -1) {
-        stmp_log_print("admiral", "Failed to bind to listen", STMP_PRINT_TYPE_ERROR);
+        lmp_log_print("admiral", "Failed to bind to listen", LMP_PRINT_TYPE_ERROR);
         close(socketFd);
        return NULL;
     }
 
     snprintf(logBuffer, sizeof(logBuffer), "Listening on %d", ADMIRAL_PORT_ADMIRAL);
-    stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_INFO);
+    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
 
     for (;;) {
         memset(logBuffer, 0, sizeof(logBuffer));
@@ -62,58 +79,58 @@ void* network_loop(void* args) {
 
         int connectionFd = accept(socketFd, (struct sockaddr *)&clientAddr, &clientLength);
         if (connectionFd == -1) {
-            stmp_log_print("admiral", "Failed to accept connection", STMP_PRINT_TYPE_ERROR);
+            lmp_log_print("admiral", "Failed to accept connection", LMP_PRINT_TYPE_ERROR);
             continue;
         }
 
-        char* client = stmp_net_get_client(connectionFd, networkArena);
+        char* client = lmp_net_get_client(connectionFd, networkArena);
 
         if (client == NULL) {
-            stmp_log_print("admiral", "Could not parse client information", STMP_PRINT_TYPE_ERROR);
+            lmp_log_print("admiral", "Could not parse client information", LMP_PRINT_TYPE_ERROR);
             continue;
         }
 
-        char* endpoint = stmp_admiral_map_client_to_endpoint(client);
+        char* endpoint = lmp_admiral_map_client_to_endpoint(client);
         if (endpoint == NULL) {
-            stmp_log_print("admiral", "Bad client connected", STMP_PRINT_TYPE_ERROR);
+            lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
             continue;
         }
 
         snprintf(logBuffer, sizeof(logBuffer), "Accepted connection from [%s]", endpoint);
-        stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_INFO);
+        lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
 
-        stmp_packet* readPacket = arena_push(networkArena, sizeof(stmp_packet));
-        stmp_packet sendPacket;
-        stmp_result result;
+        lmp_packet* readPacket = arena_push(networkArena, sizeof(lmp_packet));
+        lmp_packet sendPacket;
+        lmp_result result;
 
-        stmp_packet_init(readPacket);
-        stmp_packet_init(&sendPacket);
-        stmp_result_init(&result);
-        u8 buffer[STMP_PACKET_MAX_SIZE];
+        lmp_packet_init(readPacket);
+        lmp_packet_init(&sendPacket);
+        lmp_result_init(&result);
+        u8 buffer[LMP_PACKET_MAX_SIZE];
 
-        stmp_error error = stmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), readPacket, &result);
-        if (error != STMP_ERR_NONE) {
+        lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), readPacket, &result);
+        if (error != LMP_ERR_NONE) {
             close(connectionFd);
             memset(logBuffer, 0, sizeof(logBuffer));
             snprintf(logBuffer, sizeof(logBuffer), "Recieved bad packet from [%s]. Closing connection", endpoint);
-            stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_ERROR);
+            lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
             arena_clear(networkArena);
             continue;
         }
 
-        s8 p = stmp_admiral_add_packet_to_queue(a->queue, readPacket, endpoint);
+        s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket, endpoint);
         if (p == -1) {
-            stmp_admiral_invalidate_packet(&sendPacket);
-            stmp_error send_error = stmp_net_send_packet(connectionFd, &sendPacket, &result);
+            lmp_admiral_invalidate_packet(&sendPacket);
+            lmp_error send_error = lmp_net_send_packet(connectionFd, &sendPacket, &result);
 
-            if (send_error != STMP_ERR_NONE) {
-                stmp_log_print("admiral", "Could not send invalid response.", STMP_PRINT_TYPE_WARN);
+            if (send_error != LMP_ERR_NONE) {
+                lmp_log_print("admiral", "Could not send invalid response.", LMP_PRINT_TYPE_WARN);
             }
 
             close(connectionFd);
             memset(logBuffer, 0, sizeof(logBuffer));
             snprintf(logBuffer, sizeof(logBuffer), "Recieved invalid admiral packet from [%s]. Closing connection", endpoint);
-            stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_ERROR);
+            lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
             arena_clear(networkArena);
             continue;
         }
@@ -128,30 +145,30 @@ void* network_loop(void* args) {
 }
 
 void* admiral_loop(void* args) {
-    stmp_admiral_admiral_args* a = (stmp_admiral_admiral_args*)args;
+    lmp_admiral_admiral_args* a = (lmp_admiral_admiral_args*)args;
 
     char logBuffer[255];
 
     for (;;) {
         memset(logBuffer, 0, sizeof(logBuffer));
-        stmp_admiral_message* msg = stmp_admiral_queue_dequeue(a->queue);
+        lmp_admiral_message* msg = lmp_admiral_queue_dequeue(a->queue);
 
         if (msg == NULL) {
             snprintf(logBuffer, sizeof(logBuffer),"No message in the queue. Retrying in %d seconds", ADMIRAL_QUEUE_READ_RETRY_SECONDS);
-            stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_WARN);
+            lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_WARN);
             sleep(ADMIRAL_QUEUE_READ_RETRY_SECONDS);
             continue;
         }
 
-        char* destinationName = stmp_admiral_map_id_to_endpoint(msg->packet.payload[0]);
-        char* senderName = stmp_admiral_map_id_to_endpoint(msg->packet.payload[1]);
+        char* destinationName = lmp_admiral_map_id_to_endpoint(msg->packet.payload[0]);
+        char* senderName = lmp_admiral_map_id_to_endpoint(msg->packet.payload[1]);
 
-        stmp_admiral_sanitize_message(msg);
+        lmp_admiral_sanitize_message(msg);
 
         snprintf(logBuffer, sizeof(logBuffer), "Forwarding message to [%s] from [%s]",
                  destinationName, senderName);
 
-        stmp_log_print("admiral", logBuffer, STMP_PRINT_TYPE_INFO);
+        lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
     }
 
     // TODO(laith): send the net packet, for now lets log to test
@@ -161,10 +178,10 @@ void* admiral_loop(void* args) {
 }
 
 int main(void) {
-    stmp_admiral_queue queue;
-    stmp_admiral_queue_init(&queue, ADMIRAL_QUEUE_CAPACITY);
+    lmp_admiral_queue queue;
+    lmp_admiral_queue_init(&queue, ADMIRAL_QUEUE_CAPACITY);
 
-    stmp_admiral_network_args networkArgs = {
+    lmp_admiral_network_args networkArgs = {
         .queue = &queue,
     };
 
@@ -172,7 +189,7 @@ int main(void) {
 
     pthread_create(&networkThread, NULL, network_loop, (void*)&networkArgs);
 
-    stmp_admiral_admiral_args admiralArgs = {
+    lmp_admiral_admiral_args admiralArgs = {
         .queue = &queue,
     };
 
