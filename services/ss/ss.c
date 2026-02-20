@@ -126,7 +126,16 @@ int main(void) {
             sendPacket.type = LMP_TYPE_SEND;
             sendPacket.arg = LMP_ARG_SEND;
             sendPacket.payload = table[24*time_info->tm_hour + 60*time_info->tm_min + 60*time_info->tm_sec];
-            sendPacket.payload_length = LMP_PACKET_PAYLOAD_MAX_SIZE;
+
+            u16 payloadLength = 0;
+            for (u16 i = 0; i < LMP_PACKET_PAYLOAD_MAX_SIZE; i++) {
+                if (sendPacket.payload[i] == LMP_PACKET_TERMINATE) {
+                    break;
+                }
+                payloadLength++;
+            }
+
+            sendPacket.payload_length = payloadLength;
 
             lmp_net_send_packet(socketFd, &sendPacket, &result);
 
