@@ -95,7 +95,6 @@ char* lmp_net_get_client(u32 fd, mem_arena* arena) {
     socklen_t clientAddrLen = sizeof(clientAddr);
     int g = getpeername(fd, (struct sockaddr*)&clientAddr, &clientAddrLen);
     if (g == -1) {
-        fprintf(stderr, "getpeername failed: %s\n", strerror(errno));
         return NULL;
     }
 
@@ -103,12 +102,9 @@ char* lmp_net_get_client(u32 fd, mem_arena* arena) {
     char port[255] = {0};
 
     int n = getnameinfo(&clientAddr, clientAddrLen, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
-
     if (n != 0) {
-        fprintf(stderr, "getnameinfo failed: %s\n", gai_strerror(n));
         return NULL;
     }
-
 
     char name[255] = {0};
     snprintf(name, sizeof(name), "%s:%s", host, port);

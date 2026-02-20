@@ -93,6 +93,18 @@ int main(void) {
                 return 1;
             }
 
+            struct sockaddr_in localAddr = {0};
+            localAddr.sin_family = AF_INET;
+            localAddr.sin_port = htons(ADMIRAL_PORT_SCHEDULER);
+            localAddr.sin_addr.s_addr = INADDR_ANY;
+
+            int b = bind(socketFd, (struct sockaddr*)&localAddr, sizeof(localAddr));
+            if (b == -1) {
+                lmp_log_print("ss", "Failed to bind to port", LMP_PRINT_TYPE_ERROR);
+                close(socketFd);
+                continue;
+            }
+
             struct sockaddr_in serverAddr = {0};
             serverAddr.sin_family = AF_INET;
             serverAddr.sin_port = htons(ADMIRAL_PORT_ADMIRAL);
