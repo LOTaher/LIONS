@@ -127,13 +127,7 @@ int main(void) {
             sendPacket.arg = LMP_ARG_SEND;
             sendPacket.payload = table[24*time_info->tm_hour + 60*time_info->tm_min + 60*time_info->tm_sec];
 
-            u16 payloadLength = 0;
-            for (u16 i = 0; i < LMP_PACKET_PAYLOAD_MAX_SIZE; i++) {
-                if (sendPacket.payload[i] == LMP_PACKET_TERMINATE) {
-                    break;
-                }
-                payloadLength++;
-            }
+            u16 payloadLength = strlen((char*)sendPacket.payload);
 
             sendPacket.payload_length = payloadLength;
 
@@ -143,7 +137,7 @@ int main(void) {
                 lmp_log_print("ss", "Failed to serialize and send packet to admiral", LMP_PRINT_TYPE_ERROR);
             }
 
-            close(s);
+            close(socketFd);
         }
     }
 
