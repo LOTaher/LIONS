@@ -75,7 +75,12 @@ void lmp_log_print(const char* service, const char* message, lmp_log_print_type 
 #define ADMIRAL_HOST_SCHEDULER "100.103.121.7" // nuke
 #define ADMIRAL_ENDPOINT_SCHEDULER "100.103.121.7:6767"
 
+#define ADMIRAL_PORT_ENTRY 8800
+#define ADMIRAL_HOST_ENTRY "100.113.240.39" // mirage
+#define ADMIRAL_ENDPOINT_ENTRY "100.113.240.39:8800"
+
 typedef struct {
+    u64 id;
     u8 destinationId;
     u8 senderId;
     lmp_packet packet;
@@ -88,7 +93,9 @@ typedef struct {
 
 typedef struct {
     mem_arena* arena;
-    lmp_admiral_message** messages;
+    // NOTE(laith): messages lifetime now tied to the struct, originally was a ** which would
+    // easily get out of sync with the arena creating them on arena_clear
+    lmp_admiral_message* messages[255];
     u8 size;
     u8 capacity;
     u8 head;
@@ -101,6 +108,7 @@ typedef struct {
 typedef enum {
     ADMIRAL,
     HOTEL,
+    ENTRY,
     SCHEDULER
 } lmp_admiral_endpoint;
 
@@ -122,5 +130,11 @@ void lmp_admiral_sanitize_message(lmp_admiral_message* message);
 
 char* lmp_admiral_map_client_to_endpoint(char* client);
 char* lmp_admiral_map_id_to_endpoint(u8 id);
+
+// ===============================================================
+// Hotel
+// ===============================================================
+
+#define HOTEL_BACKLOG 15
 
 #endif // LIBLMP_H
