@@ -16,6 +16,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <sys/socket.h>
@@ -156,6 +157,7 @@ void lmp_log_print(const char* service, const char* message, lmp_log_print_type 
 char* lmp_admiral_endpoints[] = {
     "admiral",
     "hotel",
+    "entry",
     "scheduler",
 };
 
@@ -166,8 +168,7 @@ void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
     queue->capacity = capacity;
     queue->head = 0;
     queue->tail = 0;
-
-    queue->messages = arena_push(queue->arena, sizeof(lmp_admiral_message*) * capacity);
+    // queue->messeges
 
     pthread_mutex_init(&queue->mutex, NULL);
 }
@@ -253,6 +254,14 @@ s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet,
             }
 
             break;
+        case ENTRY:
+            if (strcmp(endpoint, "entry") != 0) {
+                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [entry]", endpoint);
+                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                return -1;
+            }
+
+            break;
         case SCHEDULER:
             if (strcmp(endpoint, "scheduler") != 0) {
                 snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [scheduler]", endpoint);
@@ -263,7 +272,10 @@ s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet,
             break;
     }
 
-    lmp_admiral_message message = {destination, sender, *packet};
+    // TODO(laith): heard using rand() is bad, look into alternatives eventually
+    u64 messageId = rand();
+    lmp_admiral_message message = {messageId, destination, sender, *packet};
+
     s8 e = lmp_admiral_queue_enqueue(queue, &message);
     if (e == -1) {
         snprintf(logBuffer, sizeof(logBuffer), "Could not enqueue message from [%s]", endpoint);
@@ -309,6 +321,11 @@ char* lmp_admiral_map_client_to_endpoint(char* client) {
         return "hotel";
     }
 
+    if (strcmp(client, ADMIRAL_ENDPOINT_ENTRY) == 0) {
+        return "entry";
+    }
+
+
     if (strcmp(client, ADMIRAL_ENDPOINT_SCHEDULER) == 0) {
         return "scheduler";
     }
@@ -319,6 +336,7 @@ char* lmp_admiral_map_client_to_endpoint(char* client) {
 static char* endpoint[] = {
     "admiral",
     "hotel",
+    "entry",
     "scheduler"
 };
 
