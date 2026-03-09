@@ -118,8 +118,6 @@ void* network_loop(void* args) {
             continue;
         }
 
-        printf("Endpoint: %s\n", endpoint);
-
         s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket, endpoint);
         if (p == -1) {
             lmp_admiral_invalidate_packet(&sendPacket);
@@ -162,12 +160,8 @@ void* admiral_loop(void* args) {
             continue;
         }
 
-        printf("ID: %llu, Destination: %d, Sender: %d\n", msg->id, msg->destinationId, msg->senderId);
-
         char* destinationName = lmp_admiral_map_id_to_endpoint(msg->destinationId);
         char* senderName = lmp_admiral_map_id_to_endpoint(msg->senderId);
-
-        printf("ID: %llu, Destination: %s, Sender: %s\n", msg->id, destinationName, senderName);
 
         lmp_admiral_sanitize_message(msg);
 
