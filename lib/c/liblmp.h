@@ -75,9 +75,9 @@ void lmp_log_print(const char* service, const char* message, lmp_log_print_type 
 #define ADMIRAL_HOST_SCHEDULER "100.103.121.7" // nuke
 #define ADMIRAL_ENDPOINT_SCHEDULER "100.103.121.7:6767"
 
-#define ADMIRAL_PORT_ENTRY 8800
-#define ADMIRAL_HOST_ENTRY "100.113.240.39" // mirage
-#define ADMIRAL_ENDPOINT_ENTRY "100.113.240.39:8800"
+#define ADMIRAL_PORT_GIBSON 8800
+#define ADMIRAL_HOST_GIBSON "100.113.240.39" // mirage
+#define ADMIRAL_ENDPOINT_GIBSON "100.113.240.39:8800"
 
 typedef struct {
     u64 id;
@@ -108,7 +108,7 @@ typedef struct {
 typedef enum {
     ADMIRAL,
     HOTEL,
-    ENTRY,
+    GIBSON,
     SCHEDULER
 } lmp_admiral_endpoint;
 

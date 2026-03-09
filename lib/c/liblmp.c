@@ -157,7 +157,7 @@ void lmp_log_print(const char* service, const char* message, lmp_log_print_type 
 char* lmp_admiral_endpoints[] = {
     "admiral",
     "hotel",
-    "entry",
+    "gibson",
     "scheduler",
 };
 
@@ -254,9 +254,9 @@ s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet,
             }
 
             break;
-        case ENTRY:
-            if (strcmp(endpoint, "entry") != 0) {
-                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [entry]", endpoint);
+        case GIBSON:
+            if (strcmp(endpoint, "gibson") != 0) {
+                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [gibson]", endpoint);
                 lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
                 return -1;
             }
@@ -321,8 +321,8 @@ char* lmp_admiral_map_client_to_endpoint(char* client) {
         return "hotel";
     }
 
-    if (strcmp(client, ADMIRAL_ENDPOINT_ENTRY) == 0) {
-        return "entry";
+    if (strcmp(client, ADMIRAL_ENDPOINT_GIBSON) == 0) {
+        return "gibson";
     }
 
 
@@ -336,7 +336,7 @@ char* lmp_admiral_map_client_to_endpoint(char* client) {
 static char* endpoint[] = {
     "admiral",
     "hotel",
-    "entry",
+    "gibson",
     "scheduler"
 };
 
