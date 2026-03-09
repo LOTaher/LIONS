@@ -20,7 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
+#include <poll.h>
 #include <unistd.h>
 #include <pthread.h>
 
@@ -36,16 +38,16 @@ void* network_loop(void* args) {
 
     char logBuffer[255];
 
-    int socketFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketFd == -1) {
+    int listenFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listenFd == -1) {
         lmp_log_print("admiral", "Failed to create socket", LMP_PRINT_TYPE_ERROR);
         return NULL;
     }
 
     int opt = 1;
-    if (setsockopt(socketFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+    if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
         lmp_log_print("admiral", "Failed to set socket option", LMP_PRINT_TYPE_ERROR);
-        close(socketFd);
+        close(listenFd);
         return NULL;
     }
 
@@ -54,93 +56,141 @@ void* network_loop(void* args) {
     serverAddr.sin_port = htons(ADMIRAL_PORT_ADMIRAL);
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int b = bind(socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+    int b = bind(listenFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
     if (b == -1) {
         lmp_log_print("admiral", "Failed to bind to socket", LMP_PRINT_TYPE_ERROR);
-        close(socketFd);
+        close(listenFd);
         return NULL;
     }
 
-    int l = listen(socketFd, ADMIRAL_BACKLOG);
+    int l = listen(listenFd, SOMAXCONN);
     if (l == -1) {
         lmp_log_print("admiral", "Failed to bind to listen", LMP_PRINT_TYPE_ERROR);
-        close(socketFd);
+        close(listenFd);
        return NULL;
     }
 
     snprintf(logBuffer, sizeof(logBuffer), "Listening on %d", ADMIRAL_PORT_ADMIRAL);
     lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
 
+    struct pollfd fds[ADMIRAL_BACKLOG + 1];
+    u8 fdsLength = 0;
+
+    fds[0].fd = listenFd;
+    fds[0].events = POLLIN;
+    fdsLength++;
+
+    memset(logBuffer, 0, sizeof(logBuffer));
     for (;;) {
-        memset(logBuffer, 0, sizeof(logBuffer));
 
-        struct sockaddr_in clientAddr;
-        socklen_t clientLength = sizeof(clientAddr);
-
-        int connectionFd = accept(socketFd, (struct sockaddr *)&clientAddr, &clientLength);
-        if (connectionFd == -1) {
-            lmp_log_print("admiral", "Failed to accept connection", LMP_PRINT_TYPE_ERROR);
-            continue;
+        u8 ready = poll(fds, fdsLength, -1);
+        if (ready < 0) {
+            lmp_log_print("admiral", "Failed to start poll", LMP_PRINT_TYPE_INFO);
         }
 
-        char* client = lmp_net_get_client(connectionFd, networkArena);
+        for (u8 i = 0; i < fdsLength; i++) {
+            // NOTE(laith): no events in a fd
+            if (fds[i].revents == 0) continue;
 
-        if (client == NULL) {
-            lmp_log_print("admiral", "Could not parse client information", LMP_PRINT_TYPE_ERROR);
-            continue;
-        }
 
-        char* endpoint = lmp_admiral_map_client_to_endpoint(client);
-        if (endpoint == NULL) {
-            lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
-            continue;
-        }
+            // NOTE(laith): if admiral's fd is recieving an event (new connection, etc)
+            if (fds[i].fd == listenFd) {
 
-        snprintf(logBuffer, sizeof(logBuffer), "Accepted connection from [%s]", endpoint);
-        lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
+                struct sockaddr_in clientAddr;
+                socklen_t clientLength = sizeof(clientAddr);
 
-        lmp_packet* readPacket = arena_push(networkArena, sizeof(lmp_packet));
-        lmp_packet sendPacket;
-        lmp_result result;
+                int connectionFd = accept(listenFd, (struct sockaddr *)&clientAddr, &clientLength);
+                if (connectionFd == -1) {
+                    lmp_log_print("admiral", "Failed to accept connection", LMP_PRINT_TYPE_ERROR);
+                    continue;
+                }
 
-        lmp_packet_init(readPacket);
-        lmp_packet_init(&sendPacket);
-        lmp_result_init(&result);
-        u8 buffer[LMP_PACKET_MAX_SIZE];
+                char* client = lmp_net_get_client(connectionFd, networkArena);
 
-        lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), readPacket, &result);
-        if (error != LMP_ERR_NONE) {
-            close(connectionFd);
-            memset(logBuffer, 0, sizeof(logBuffer));
-            snprintf(logBuffer, sizeof(logBuffer), "Recieved bad packet from [%s]. Closing connection", endpoint);
-            lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
-            arena_clear(networkArena);
-            continue;
-        }
+                if (client == NULL) {
+                    lmp_log_print("admiral", "Could not parse client information", LMP_PRINT_TYPE_ERROR);
+                    continue;
+                }
 
-        s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket, endpoint);
-        if (p == -1) {
-            lmp_admiral_invalidate_packet(&sendPacket);
-            lmp_error send_error = lmp_net_send_packet(connectionFd, &sendPacket, &result);
+                char* endpoint = lmp_admiral_map_client_to_endpoint(client);
+                if (endpoint == NULL) {
+                    lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    continue;
+                }
 
-            if (send_error != LMP_ERR_NONE) {
-                lmp_log_print("admiral", "Could not send invalid response.", LMP_PRINT_TYPE_WARN);
+                snprintf(logBuffer, sizeof(logBuffer), "Accepted connection from [%s]", endpoint);
+                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
+
+                if (fdsLength >= ADMIRAL_BACKLOG + 1) {
+                    lmp_log_print("admiral", "Too many clients connected", LMP_PRINT_TYPE_ERROR);
+                    close(connectionFd);
+                    continue;
+                }
+
+                fds[fdsLength].fd = connectionFd;
+                fds[fdsLength].events = POLLIN;
+                fdsLength++;
+
+            // NOTE(laith): if any other fd has activity (recieving data from a fd, etc)
+            } else {
+                u8 connectionFd = fds[i].fd;
+                memset(logBuffer, 0, sizeof(logBuffer));
+
+                char* client = lmp_net_get_client(connectionFd, networkArena);
+                if (client == NULL) {
+                    lmp_log_print("admiral", "Could not parse client information", LMP_PRINT_TYPE_ERROR);
+                    continue;
+                }
+
+                char* endpoint = lmp_admiral_map_client_to_endpoint(client);
+                if (endpoint == NULL) {
+                    lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    continue;
+                }
+
+                lmp_packet* readPacket = arena_push(networkArena, sizeof(lmp_packet));
+                lmp_packet sendPacket;
+                lmp_result result;
+
+                lmp_packet_init(readPacket);
+                lmp_packet_init(&sendPacket);
+                lmp_result_init(&result);
+                u8 buffer[LMP_PACKET_MAX_SIZE];
+
+                lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), readPacket, &result);
+                if (error != LMP_ERR_NONE) {
+                    close(connectionFd);
+                    memset(logBuffer, 0, sizeof(logBuffer));
+                    snprintf(logBuffer, sizeof(logBuffer), "Recieved bad packet from [%s]. Closing connection", endpoint);
+                    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                    arena_clear(networkArena);
+                    continue;
+                }
+
+                s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket, endpoint);
+                if (p == -1) {
+                    lmp_admiral_invalidate_packet(&sendPacket);
+                    lmp_error send_error = lmp_net_send_packet(connectionFd, &sendPacket, &result);
+
+                    if (send_error != LMP_ERR_NONE) {
+                        lmp_log_print("admiral", "Could not send invalid response.", LMP_PRINT_TYPE_WARN);
+                    }
+
+                    close(connectionFd);
+                    memset(logBuffer, 0, sizeof(logBuffer));
+                    snprintf(logBuffer, sizeof(logBuffer), "Recieved invalid admiral packet from [%s]. Closing connection", endpoint);
+                    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                    arena_clear(networkArena);
+                    continue;
+                }
+
+                arena_clear(networkArena);
             }
-
-            close(connectionFd);
-            memset(logBuffer, 0, sizeof(logBuffer));
-            snprintf(logBuffer, sizeof(logBuffer), "Recieved invalid admiral packet from [%s]. Closing connection", endpoint);
-            lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
-            arena_clear(networkArena);
-            continue;
         }
-
-        arena_clear(networkArena);
-        close(connectionFd);
     }
 
     arena_destroy(networkArena);
-    close(socketFd);
+    close(listenFd);
     return 0;
 }
 
