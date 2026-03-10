@@ -13,7 +13,6 @@ import (
 
 var LIONS_API_KEY = ""
 
-const BUFFER_LEN = 20 // key=[16 char key]
 const ADMIRAL_ENDPOINT = "100.113.240.39:5321"
 const ENTRY_IP = "100.113.240.39"
 const ENTRY_PORT = 8800
@@ -86,9 +85,8 @@ func receptionHandler(ch chan lmp.LmpPacket) http.HandlerFunc {
 			sendPacket.Payload = []byte("12?")
 			sendPacket.PayloadLength = 3
 
-			buf := make([]byte, BUFFER_LEN)
-			r.Body.Read(buf)
 			ch <- sendPacket
+
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -96,6 +94,21 @@ func receptionHandler(ch chan lmp.LmpPacket) http.HandlerFunc {
 
 		return
 	}
+}
+
+func cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-LIONS-KEY")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -106,7 +119,8 @@ func main() {
 
 	fmt.Printf("Entry API Key: %s\n", LIONS_API_KEY)
 
-	http.HandleFunc("/reception", receptionHandler(pktChannel))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/reception", receptionHandler(pktChannel))
 
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8080", cors(mux))
 }
