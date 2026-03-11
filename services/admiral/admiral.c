@@ -115,6 +115,7 @@ void* network_loop(void* args) {
                 char* endpoint = lmp_admiral_map_client_to_endpoint(client);
                 if (endpoint == NULL) {
                     lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    close(connectionFd);
                     continue;
                 }
 
@@ -203,10 +204,11 @@ void* admiral_loop(void* args) {
         memset(logBuffer, 0, sizeof(logBuffer));
         lmp_admiral_message* msg = lmp_admiral_queue_dequeue(a->queue);
 
+        // NOTE(laith): can edit to enforce a retry cooldown
         if (msg == NULL) {
-            snprintf(logBuffer, sizeof(logBuffer),"No message in the queue. Retrying in %d seconds", ADMIRAL_QUEUE_READ_RETRY_SECONDS);
-            lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_WARN);
-            sleep(ADMIRAL_QUEUE_READ_RETRY_SECONDS);
+            // snprintf(logBuffer, sizeof(logBuffer),"No message in the queue. Retrying in %d seconds", ADMIRAL_QUEUE_READ_RETRY_SECONDS);
+            // lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_WARN);
+            // sleep(ADMIRAL_QUEUE_READ_RETRY_SECONDS);
             continue;
         }
 
