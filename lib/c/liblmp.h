@@ -37,6 +37,7 @@ lmp_error lmp_net_send_packet(u32 fd, const lmp_packet* packet, lmp_result* resu
 lmp_error lmp_net_recv_packet(u32 fd, u8* buffer, size_t size, lmp_packet* packet, lmp_result* result);
 char* lmp_net_get_client(u32 fd, mem_arena* arena);
 lmp_error lmp_net_send_packet_to_admiral(char* endpoint, const lmp_packet* packet, lmp_result* result);
+u8 lmp_net_is_connection_alive(u32 fd);
 
 // ===============================================================
 // Log
@@ -64,7 +65,8 @@ void lmp_log_print(const char* service, const char* message, lmp_log_print_type 
 #define ADMIRAL_QUEUE_READ_RETRY_SECONDS 30
 
 #define ADMIRAL_PORT_ADMIRAL 5321
-#define ADMIRAL_HOST_ADMIRAL "100.109.120.90" // inferno
+// #define ADMIRAL_HOST_ADMIRAL "100.109.120.90" // inferno
+#define ADMIRAL_HOST_ADMIRAL "100.113.240.39" // mirage
 #define ADMIRAL_ENDPOINT_ADMIRAL "100.109.120.90:5321"
 
 #define ADMIRAL_PORT_HOTEL 4200

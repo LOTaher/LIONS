@@ -116,6 +116,13 @@ char* lmp_net_get_client(u32 fd, mem_arena* arena) {
     return allocatedName;
 }
 
+u8 lmp_net_is_connection_alive(u32 fd) {
+    u8 buf[1];
+    size_t n = recv(fd, buf, sizeof(buf), MSG_PEEK);
+
+    return n == 0;
+}
+
 
 // lmp_error lmp_net_send_packet_to_admiral(char* endpoint, const lmp_packet* packet, lmp_result* result) {
 //     mem_arena* arena = arena_create(KiB(8));
