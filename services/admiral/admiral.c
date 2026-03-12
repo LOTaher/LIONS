@@ -81,8 +81,8 @@ void* network_loop(void* args) {
     fdsLength++;
 
     memset(logBuffer, 0, sizeof(logBuffer));
-    for (;;) {
 
+    for (;;) {
         u8 ready = poll(fds, fdsLength, -1);
         if (ready < 0) {
             lmp_log_print("admiral", "Failed to start poll", LMP_PRINT_TYPE_INFO);
@@ -119,7 +119,7 @@ void* network_loop(void* args) {
                     continue;
                 }
 
-                snprintf(logBuffer, sizeof(logBuffer), "Accepted connection from [%s]", endpoint);
+                snprintf(logBuffer, sizeof(logBuffer), "[%s] has connected", endpoint);
                 lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
 
                 if (fdsLength >= ADMIRAL_BACKLOG + 1) {
@@ -146,6 +146,16 @@ void* network_loop(void* args) {
                 char* endpoint = lmp_admiral_map_client_to_endpoint(client);
                 if (endpoint == NULL) {
                     lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    continue;
+                }
+
+                if (fds[i].revents & (POLLERR | POLLHUP)) {
+                    snprintf(logBuffer, sizeof(logBuffer), "[%s] has disconnected", endpoint);
+                    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                    fds[i] = fds[fdsLength - 1];
+                    fds[i].revents = 0;
+                    fdsLength--;
+                    close(connectionFd);
                     continue;
                 }
 
