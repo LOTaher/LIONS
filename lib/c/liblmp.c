@@ -123,49 +123,15 @@ u8 lmp_net_is_connection_alive(u32 fd) {
     return n == 0;
 }
 
-
-// lmp_error lmp_net_send_packet_to_admiral(char* endpoint, const lmp_packet* packet, lmp_result* result) {
-//     mem_arena* arena = arena_create(KiB(8));
-//
-//     return NULL;
-// }
-
-// ===============================================================
-// Log
-// ===============================================================
-
-const char* lmp_log_print_type_colors[] = {
-    LMP_LOG_COLOR_INFO,
-    LMP_LOG_COLOR_WARN,
-    LMP_LOG_COLOR_ERROR
-};
-
-void lmp_log_print(const char* service, const char* message, lmp_log_print_type type) {
-	time_t timestamp = time(NULL);
-	struct tm* time_info = localtime(&timestamp);
-
-    switch (type) {
-        case LMP_PRINT_TYPE_INFO:
-            fprintf(stderr, "%s[%s] %02d:%02d:%02d [INFO]: %s%s\n", lmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, LMP_LOG_COLOR_RESET);
-            return;
-        case LMP_PRINT_TYPE_WARN:
-            fprintf(stderr, "%s[%s] %02d:%02d:%02d [WARN]: %s%s\n", lmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, LMP_LOG_COLOR_RESET);
-            return;
-        case LMP_PRINT_TYPE_ERROR:
-            fprintf(stderr, "%s[%s] %02d:%02d:%02d [ERROR]: %s%s\n", lmp_log_print_type_colors[type], service, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message, LMP_LOG_COLOR_RESET);
-            return;
-    }
-}
-
 // ===============================================================
 // Admiral
 // ===============================================================
 
-char* lmp_admiral_endpoints[] = {
+char* lmp_admiral_services[] = {
     "admiral",
-    "hotel",
+    "reception",
+    "s2",
     "gibson",
-    "scheduler",
 };
 
 void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
@@ -228,9 +194,7 @@ lmp_admiral_message* lmp_admiral_queue_dequeue(lmp_admiral_queue* queue) {
 // this function ends, we can safely pop the packet memory of the network arena and start again
 //
 // Do NOT share memory across threads!
-s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet, char* endpoint) {
-    char logBuffer[255] = {0};
-
+s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
     // NOTE(laith): this should be [dest][sender][EMPTY PAYLOAD BYTE] at the minimum
     if (packet->payload_length < 3) {
         return -1;
@@ -240,43 +204,8 @@ s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet,
     u8 destination = packet->payload[0] - '0';
     u8 sender = packet->payload[1] - '0';
 
-    if (destination > SCHEDULER || sender > SCHEDULER) {
+    if (destination >= LMP_ADMIRAL_SERVICE_COUNT || sender >= LMP_ADMIRAL_SERVICE_COUNT) {
         return -1;
-    }
-
-    switch (sender) {
-        case ADMIRAL:
-            if (strcmp(endpoint, "admiral") != 0) {
-                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [admiral]", endpoint);
-                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
-                return -1;
-            }
-
-            break;
-        case HOTEL:
-            if (strcmp(endpoint, "hotel") != 0) {
-                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [hotel]", endpoint);
-                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
-                return -1;
-            }
-
-            break;
-        case GIBSON:
-            if (strcmp(endpoint, "gibson") != 0) {
-                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [gibson]", endpoint);
-                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
-                return -1;
-            }
-
-            break;
-        case SCHEDULER:
-            if (strcmp(endpoint, "scheduler") != 0) {
-                snprintf(logBuffer, sizeof(logBuffer), "[%s] is claiming to be a [scheduler]", endpoint);
-                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
-                return -1;
-            }
-
-            break;
     }
 
     // TODO(laith): heard using rand() is bad, look into alternatives eventually
@@ -285,14 +214,11 @@ s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet,
 
     s8 e = lmp_admiral_queue_enqueue(queue, &message);
     if (e == -1) {
-        snprintf(logBuffer, sizeof(logBuffer), "Could not enqueue message from [%s]", endpoint);
-        lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+        lmp_log_print(sender, destination, "Could not enqueue packet", LMP_PRINT_TYPE_ERROR);
         return -1;
     }
 
-    snprintf(logBuffer, sizeof(logBuffer), "Recieved and added message from [%s] to queue", endpoint);
-    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
-
+    lmp_log_print(sender, destination, "Added packet to queue", LMP_PRINT_TYPE_INFO);
     return 1;
 }
 
@@ -319,35 +245,52 @@ void lmp_admiral_invalidate_packet(lmp_packet* packet) {
     packet->payload_length = 1;
 }
 
-char* lmp_admiral_map_client_to_endpoint(char* client) {
+lmp_admiral_service lmp_admiral_map_client_to_service(char* client) {
     if (strcmp(client, ADMIRAL_ENDPOINT_ADMIRAL) == 0) {
-        return "admiral";
+        return LMP_ADMIRAL_SERVICE_ADMIRAL;
     }
 
-    if (strcmp(client, ADMIRAL_ENDPOINT_HOTEL) == 0) {
-        return "hotel";
+    if (strcmp(client, ADMIRAL_ENDPOINT_RECEPTION) == 0) {
+        return LMP_ADMIRAL_SERVICE_RECEPTION;
+    }
+
+    if (strcmp(client, ADMIRAL_ENDPOINT_S2) == 0) {
+        return LMP_ADMIRAL_SERVICE_S2;
     }
 
     if (strcmp(client, ADMIRAL_ENDPOINT_GIBSON) == 0) {
-        return "gibson";
+        return LMP_ADMIRAL_SERVICE_GIBSON;
     }
 
-
-    if (strcmp(client, ADMIRAL_ENDPOINT_SCHEDULER) == 0) {
-        return "scheduler";
-    }
-
-    return NULL;
+    return LMP_ADMIRAL_SERVICE_NONE;
 }
 
-static char* endpoint[] = {
-    "admiral",
-    "hotel",
-    "gibson",
-    "scheduler"
+// ===============================================================
+// Log
+// ===============================================================
+
+const char* lmp_log_lions =         "LIONS //";
+const char* lmp_log_lions_bracket = "[LIONS //]";
+
+const char* lmp_log_print_type_colors[] = {
+    LMP_LOG_TYPE_COLOR_INFO,
+    LMP_LOG_TYPE_COLOR_WARN,
+    LMP_LOG_TYPE_COLOR_ERROR
 };
 
-char* lmp_admiral_map_id_to_endpoint(u8 id) {
-    return endpoint[id];
+const char* lmp_log_print_service_colors[] = {
+    LMP_LOG_SERVICE_COLOR_ADMIRAL,
+    LMP_LOG_SERVICE_COLOR_RECEPTION,
+    LMP_LOG_SERVICE_COLOR_S2,
+    LMP_LOG_SERVICE_COLOR_GIBSON,
+};
+
+void lmp_log_print(lmp_admiral_service sender, lmp_admiral_service destination, const char* message, lmp_log_print_type type) {
+    time_t timestamp = time(NULL);
+    struct tm* time_info = localtime(&timestamp);
+
+    // [LIONS]  (sender -> destination) hour:minute:second: message
+    printf("%s[%s]%s (%s%s%s -> %s%s%s) %02d:%02d:%02d: %s\n", lmp_log_print_type_colors[type], lmp_log_lions, LMP_LOG_COLOR_RESET, lmp_log_print_service_colors[sender], lmp_admiral_services[sender], LMP_LOG_COLOR_RESET,  lmp_log_print_service_colors[destination], lmp_admiral_services[destination], LMP_LOG_COLOR_RESET, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message);
+    return;
 }
 
