@@ -36,17 +36,16 @@ void* network_loop(void* args) {
 
     mem_arena* networkArena = arena_create(KiB(8));
 
-    char logBuffer[255];
 
     int listenFd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenFd == -1) {
-        lmp_log_print("admiral", "Failed to create socket", LMP_PRINT_TYPE_ERROR);
+        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to create socket", LMP_PRINT_TYPE_ERROR);
         return NULL;
     }
 
     int opt = 1;
     if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        lmp_log_print("admiral", "Failed to set socket option", LMP_PRINT_TYPE_ERROR);
+        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to set socket option", LMP_PRINT_TYPE_ERROR);
         close(listenFd);
         return NULL;
     }
@@ -58,20 +57,21 @@ void* network_loop(void* args) {
 
     int b = bind(listenFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
     if (b == -1) {
-        lmp_log_print("admiral", "Failed to bind to socket", LMP_PRINT_TYPE_ERROR);
+        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to bind to socket", LMP_PRINT_TYPE_ERROR);
         close(listenFd);
         return NULL;
     }
 
     int l = listen(listenFd, SOMAXCONN);
     if (l == -1) {
-        lmp_log_print("admiral", "Failed to bind to listen", LMP_PRINT_TYPE_ERROR);
+        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to bind to listen", LMP_PRINT_TYPE_ERROR);
         close(listenFd);
        return NULL;
     }
 
+    char logBuffer[255];
     snprintf(logBuffer, sizeof(logBuffer), "Listening on %d", ADMIRAL_PORT_ADMIRAL);
-    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
+    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, logBuffer, LMP_PRINT_TYPE_INFO);
 
     struct pollfd fds[ADMIRAL_BACKLOG + 1];
     u8 fdsLength = 0;
@@ -80,12 +80,10 @@ void* network_loop(void* args) {
     fds[0].events = POLLIN;
     fdsLength++;
 
-    memset(logBuffer, 0, sizeof(logBuffer));
-
     for (;;) {
         u8 ready = poll(fds, fdsLength, -1);
         if (ready < 0) {
-            lmp_log_print("admiral", "Failed to start poll", LMP_PRINT_TYPE_INFO);
+            lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to start poll", LMP_PRINT_TYPE_INFO);
         }
 
         for (u8 i = 0; i < fdsLength; i++) {
@@ -101,29 +99,28 @@ void* network_loop(void* args) {
 
                 int connectionFd = accept(listenFd, (struct sockaddr *)&clientAddr, &clientLength);
                 if (connectionFd == -1) {
-                    lmp_log_print("admiral", "Failed to accept connection", LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to accept connection", LMP_PRINT_TYPE_ERROR);
                     continue;
                 }
 
                 char* client = lmp_net_get_client(connectionFd, networkArena);
-
                 if (client == NULL) {
-                    lmp_log_print("admiral", "Could not parse client information", LMP_PRINT_TYPE_ERROR);
-                    continue;
-                }
-
-                char* endpoint = lmp_admiral_map_client_to_endpoint(client);
-                if (endpoint == NULL) {
-                    lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Could not parse client information", LMP_PRINT_TYPE_ERROR);
                     close(connectionFd);
                     continue;
                 }
 
-                snprintf(logBuffer, sizeof(logBuffer), "[%s] has connected", endpoint);
-                lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
+                lmp_admiral_service service = lmp_admiral_map_client_to_service(client);
+                if (service == LMP_ADMIRAL_SERVICE_NONE) {
+                    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    close(connectionFd);
+                    continue;
+                }
+
+                lmp_log_print(service, LMP_ADMIRAL_SERVICE_ADMIRAL, "Successfully connected", LMP_PRINT_TYPE_INFO);
 
                 if (fdsLength >= ADMIRAL_BACKLOG + 1) {
-                    lmp_log_print("admiral", "Too many clients connected", LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Too many clients connected. Closing connection.", LMP_PRINT_TYPE_ERROR);
                     close(connectionFd);
                     continue;
                 }
@@ -135,23 +132,23 @@ void* network_loop(void* args) {
             // NOTE(laith): if any other fd has activity (recieving data from a fd, etc)
             } else {
                 u8 connectionFd = fds[i].fd;
-                memset(logBuffer, 0, sizeof(logBuffer));
 
                 char* client = lmp_net_get_client(connectionFd, networkArena);
                 if (client == NULL) {
-                    lmp_log_print("admiral", "Could not parse client information", LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Could not parse client information", LMP_PRINT_TYPE_ERROR);
+                    close(connectionFd);
                     continue;
                 }
 
-                char* endpoint = lmp_admiral_map_client_to_endpoint(client);
-                if (endpoint == NULL) {
-                    lmp_log_print("admiral", "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                lmp_admiral_service service = lmp_admiral_map_client_to_service(client);
+                if (service == LMP_ADMIRAL_SERVICE_NONE) {
+                    lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Bad client connected", LMP_PRINT_TYPE_ERROR);
+                    close(connectionFd);
                     continue;
                 }
 
                 if (fds[i].revents & (POLLERR | POLLHUP)) {
-                    snprintf(logBuffer, sizeof(logBuffer), "[%s] has disconnected", endpoint);
-                    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(service, LMP_ADMIRAL_SERVICE_ADMIRAL, "Closed connection", LMP_PRINT_TYPE_ERROR);
                     fds[i] = fds[fdsLength - 1];
                     fds[i].revents = 0;
                     fdsLength--;
@@ -171,26 +168,22 @@ void* network_loop(void* args) {
                 lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), readPacket, &result);
                 if (error != LMP_ERR_NONE) {
                     close(connectionFd);
-                    memset(logBuffer, 0, sizeof(logBuffer));
-                    snprintf(logBuffer, sizeof(logBuffer), "Recieved bad packet from [%s]. Closing connection", endpoint);
-                    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(service, LMP_ADMIRAL_SERVICE_ADMIRAL, "Bad packet. Closing connection", LMP_PRINT_TYPE_ERROR);
                     arena_clear(networkArena);
                     continue;
                 }
 
-                s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket, endpoint);
+                s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket);
                 if (p == -1) {
                     lmp_admiral_invalidate_packet(&sendPacket);
                     lmp_error send_error = lmp_net_send_packet(connectionFd, &sendPacket, &result);
 
                     if (send_error != LMP_ERR_NONE) {
-                        lmp_log_print("admiral", "Could not send invalid response.", LMP_PRINT_TYPE_WARN);
+                        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, service, "Could not send invalid response packet", LMP_PRINT_TYPE_WARN);
                     }
 
                     close(connectionFd);
-                    memset(logBuffer, 0, sizeof(logBuffer));
-                    snprintf(logBuffer, sizeof(logBuffer), "Recieved invalid admiral packet from [%s]. Closing connection", endpoint);
-                    lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_ERROR);
+                    lmp_log_print(service, LMP_ADMIRAL_SERVICE_ADMIRAL, "Recieved invalid admiral packet. Closing connection", LMP_PRINT_TYPE_ERROR);
                     arena_clear(networkArena);
                     continue;
                 }
@@ -222,15 +215,9 @@ void* admiral_loop(void* args) {
             continue;
         }
 
-        char* destinationName = lmp_admiral_map_id_to_endpoint(msg->destinationId);
-        char* senderName = lmp_admiral_map_id_to_endpoint(msg->senderId);
-
         lmp_admiral_sanitize_message(msg);
 
-        snprintf(logBuffer, sizeof(logBuffer), "Forwarding message to [%s] from [%s]",
-                 destinationName, senderName);
-
-        lmp_log_print("admiral", logBuffer, LMP_PRINT_TYPE_INFO);
+        lmp_log_print(msg->sender, msg->destination, "Forwarding message", LMP_PRINT_TYPE_INFO);
     }
 
     // TODO(laith): send the net packet, for now lets log to test
