@@ -1,8 +1,8 @@
-all: echo
+all: s2
 
-echo:
-	gcc -Wall -Wextra -pedantic -std=gnu99 -g echo.c ../../lib/c/liblmp.c ../../lib/c/lmp.c -o echo
+s2:
+	gcc -Wall -Wextra -pedantic -std=gnu99 -g s2.c ../../lib/c/liblmp.c ../../lib/c/lmp.c -o s2
 
 clean:
-	rm echo
+	rm s2
 
