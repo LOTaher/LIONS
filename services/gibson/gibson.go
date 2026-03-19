@@ -17,7 +17,7 @@ const ADMIRAL_ENDPOINT = "100.113.240.39:5321"
 const ENTRY_IP = "100.113.240.39"
 const ENTRY_PORT = 8800
 
-func createAdmiralConnection(ch chan lmp.LmpPacket) {
+func createAdmiralConnection(pktChannel chan lmp.LmpPacket) {
 	localAddr := &net.TCPAddr{
 		IP:   net.ParseIP(ENTRY_IP),
 		Port: ENTRY_PORT,
@@ -35,7 +35,7 @@ func createAdmiralConnection(ch chan lmp.LmpPacket) {
 	}
 
 	for true {
-		pkt := <-ch
+		pkt := <-pktChannel
 
 		buf, err := pkt.Serialize()
 		if err != nil {
@@ -59,9 +59,9 @@ func generateKey() string {
 	return hex.EncodeToString(key)
 }
 
-// NOTE(laith): closure patterning so hard rn. good way to substitute inputs that require
+// NOTE(laith): using closures is a good way to substitute inputs that require
 // a function type
-func receptionHandler(ch chan lmp.LmpPacket) http.HandlerFunc {
+func receptionHandler(pktChannel chan lmp.LmpPacket) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			// key := r.Header.Get("X-LIONS-KEY")
@@ -85,7 +85,7 @@ func receptionHandler(ch chan lmp.LmpPacket) http.HandlerFunc {
 			sendPacket.Payload = []byte("12?")
 			sendPacket.PayloadLength = 3
 
-			ch <- sendPacket
+			pktChannel <- sendPacket
 
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
