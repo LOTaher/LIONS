@@ -146,7 +146,7 @@ void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
     pthread_mutex_init(&queue->mutex, NULL);
 }
 
-s8 lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, const lmp_admiral_message* message) {
+s8 lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, lmp_admiral_message* message) {
     pthread_mutex_lock(&queue->mutex);
 
     if (queue->size >= queue->capacity) {
@@ -154,11 +154,7 @@ s8 lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, const lmp_admiral_message
         return -1;
     }
 
-    lmp_admiral_message* allocated = arena_push(queue->arena, sizeof(lmp_admiral_message));
-
-    *allocated = *message;
-
-    queue->messages[queue->tail++] = allocated;
+    queue->messages[queue->tail++] = message;
     queue->size++;
 
     pthread_mutex_unlock(&queue->mutex);
@@ -189,30 +185,43 @@ lmp_admiral_message* lmp_admiral_queue_dequeue(lmp_admiral_queue* queue) {
     return msg;
 }
 
+lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet) {
+    u64 messageSize = sizeof(lmp_admiral_message) + LMP_PACKET_HEADER_SIZE + packet->payload_length + 1;
+    lmp_admiral_message* message = arena_push(arena, messageSize);
+
+    message->id = rand();
+    message->destination = destination;
+    message->sender = sender;
+
+    memcpy((void*)&message->packet, packet, LMP_PACKET_HEADER_SIZE + packet->payload_length);
+
+    return message;
+}
+
 // NOTE(laith): this function changes how ownership of the packet is handled. This paacket lives
 // in the network loop arena and now it is getting copied over to the queue arena. with that, after
 // this function ends, we can safely pop the packet memory of the network arena and start again
 //
 // Do NOT share memory across threads!
-s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
+s8 lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
     // NOTE(laith): this should be [dest][sender][EMPTY PAYLOAD BYTE] at the minimum
     if (packet->payload_length < 3) {
         return -1;
     }
 
     // NOTE(laith): this converts and ascii string to its byte form
-    u8 destination = packet->payload[0] - '0';
-    u8 sender = packet->payload[1] - '0';
+    lmp_admiral_service destination = packet->payload[0] - '0';
+    lmp_admiral_service sender = packet->payload[1] - '0';
 
     if (destination >= LMP_ADMIRAL_SERVICE_COUNT || sender >= LMP_ADMIRAL_SERVICE_COUNT) {
         return -1;
     }
 
-    // TODO(laith): heard using rand() is bad, look into alternatives eventually
-    u64 messageId = rand();
-    lmp_admiral_message message = {messageId, destination, sender, *packet};
+    lmp_admiral_packet_sanitize(packet);
 
-    s8 e = lmp_admiral_queue_enqueue(queue, &message);
+    lmp_admiral_message* message = lmp_admiral_message_create(queue->arena, destination, sender, packet);
+
+    s8 e = lmp_admiral_queue_enqueue(queue, message);
     if (e == -1) {
         lmp_log_print(sender, destination, "Could not enqueue packet", LMP_PRINT_TYPE_ERROR);
         return -1;
@@ -222,22 +231,20 @@ s8 lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet)
     return 1;
 }
 
-// NOTE(laith): probably want some further checks here but given the checks within the enqueue call
-// and the protocol itself, it should be fine?
-void lmp_admiral_sanitize_message(lmp_admiral_message* message) {
-    u64 sanitizedPayloadSize = message->packet.payload_length - 2;
+void lmp_admiral_packet_sanitize(lmp_packet* packet) {
+    u64 sanitizedPayloadSize = packet->payload_length - 2;
     u8 sanitizedPayload[sanitizedPayloadSize];
 
     u64 sanitizedPayloadInput = 0;
-    for (u64 i = 2; i < message->packet.payload_length; i++) {
-        sanitizedPayload[sanitizedPayloadInput++] = message->packet.payload[i];
+    for (u64 i = 2; i < packet->payload_length; i++) {
+        sanitizedPayload[sanitizedPayloadInput++] = packet->payload[i];
     }
 
-    memcpy((void*)message->packet.payload, sanitizedPayload, sanitizedPayloadSize);
-    message->packet.payload_length = sanitizedPayloadSize;
+    memcpy((void*)packet->payload, sanitizedPayload, sanitizedPayloadSize);
+    packet->payload_length = sanitizedPayloadSize;
 }
 
-void lmp_admiral_invalidate_packet(lmp_packet* packet) {
+void lmp_admiral_packet_invalidate(lmp_packet* packet) {
     packet->type = LMP_TYPE_INVALID;
     packet->arg = LMP_ARG_INVALID_PAYLOAD;
     packet->flags = LMP_FLAGS_NONE;
@@ -245,7 +252,7 @@ void lmp_admiral_invalidate_packet(lmp_packet* packet) {
     packet->payload_length = 1;
 }
 
-lmp_admiral_service lmp_admiral_map_client_to_service(char* client) {
+lmp_admiral_service lmp_admiral_service_map_from_client(char* client) {
     if (strcmp(client, ADMIRAL_ENDPOINT_ADMIRAL) == 0) {
         return LMP_ADMIRAL_SERVICE_ADMIRAL;
     }

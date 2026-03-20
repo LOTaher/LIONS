@@ -97,15 +97,22 @@ typedef struct {
     lmp_admiral_queue* queue;
 } lmp_admiral_admiral_args;
 
+
+// --- Queue ------------------------------------------------------------
 void                 lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity);
-s8                   lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, const lmp_admiral_message* message);
+s8                   lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, lmp_admiral_message* message);
 lmp_admiral_message* lmp_admiral_queue_dequeue(lmp_admiral_queue* queue);
 
-s8                   lmp_admiral_add_packet_to_queue(lmp_admiral_queue* queue, lmp_packet* packet);
-void                 lmp_admiral_invalidate_packet(lmp_packet* packet);
-void                 lmp_admiral_sanitize_message(lmp_admiral_message* message);
+// --- Packet ----------------------------------------------------------
+s8                   lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet);
+void                 lmp_admiral_packet_invalidate(lmp_packet* packet);
+void                 lmp_admiral_packet_sanitize(lmp_packet* packet);
 
-lmp_admiral_service  lmp_admiral_map_client_to_service(char* client);
+// --- Message ----------------------------------------------------------
+lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet);
+
+// --- Service ----------------------------------------------------------
+lmp_admiral_service  lmp_admiral_service_map_from_client(char* client);
 
 // ===============================================================
 // Reception

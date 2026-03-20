@@ -110,7 +110,7 @@ void* network_loop(void* args) {
                     continue;
                 }
 
-                lmp_admiral_service service = lmp_admiral_map_client_to_service(client);
+                lmp_admiral_service service = lmp_admiral_service_map_from_client(client);
                 if (service == LMP_ADMIRAL_SERVICE_NONE) {
                     lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Bad client connected", LMP_PRINT_TYPE_ERROR);
                     close(connectionFd);
@@ -140,7 +140,7 @@ void* network_loop(void* args) {
                     continue;
                 }
 
-                lmp_admiral_service service = lmp_admiral_map_client_to_service(client);
+                lmp_admiral_service service = lmp_admiral_service_map_from_client(client);
                 if (service == LMP_ADMIRAL_SERVICE_NONE) {
                     lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Bad client connected", LMP_PRINT_TYPE_ERROR);
                     close(connectionFd);
@@ -173,9 +173,9 @@ void* network_loop(void* args) {
                     continue;
                 }
 
-                s8 p = lmp_admiral_add_packet_to_queue(a->queue, readPacket);
+                s8 p = lmp_admiral_packet_queue(a->queue, readPacket);
                 if (p == -1) {
-                    lmp_admiral_invalidate_packet(&sendPacket);
+                    lmp_admiral_packet_invalidate(&sendPacket);
                     lmp_error send_error = lmp_net_send_packet(connectionFd, &sendPacket, &result);
 
                     if (send_error != LMP_ERR_NONE) {
@@ -201,10 +201,7 @@ void* network_loop(void* args) {
 void* admiral_loop(void* args) {
     lmp_admiral_admiral_args* a = (lmp_admiral_admiral_args*)args;
 
-    char logBuffer[255];
-
     for (;;) {
-        memset(logBuffer, 0, sizeof(logBuffer));
         lmp_admiral_message* msg = lmp_admiral_queue_dequeue(a->queue);
 
         // NOTE(laith): can edit to enforce a retry cooldown
@@ -214,8 +211,6 @@ void* admiral_loop(void* args) {
             // sleep(ADMIRAL_QUEUE_READ_RETRY_SECONDS);
             continue;
         }
-
-        lmp_admiral_sanitize_message(msg);
 
         lmp_log_print(msg->sender, msg->destination, "Forwarding message", LMP_PRINT_TYPE_INFO);
     }
