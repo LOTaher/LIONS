@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "liblmp.h"
 #include "lt_arena.h"
@@ -118,6 +119,9 @@ char* lmp_net_get_client(u32 fd, mem_arena* arena) {
 
 u8 lmp_net_is_connection_alive(u32 fd) {
     u8 buf[1];
+    // NOTE(laith): socket to non-blocking
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     size_t n = recv(fd, buf, sizeof(buf), MSG_PEEK);
 
     return n == 0;
@@ -132,6 +136,7 @@ char* lmp_admiral_services[] = {
     "reception",
     "s2",
     "gibson",
+    "laitt",
 };
 
 void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
@@ -269,7 +274,45 @@ lmp_admiral_service lmp_admiral_service_map_from_client(char* client) {
         return LMP_ADMIRAL_SERVICE_GIBSON;
     }
 
+    if (strcmp(client, ADMIRAL_ENDPOINT_LAITT) == 0) {
+        return LMP_ADMIRAL_SERVICE_LAITT;
+    }
+
     return LMP_ADMIRAL_SERVICE_NONE;
+}
+
+char* lmp_admiral_service_get_host(lmp_admiral_service service) {
+    switch (service) {
+        case LMP_ADMIRAL_SERVICE_ADMIRAL:
+            return ADMIRAL_HOST_ADMIRAL;
+        case LMP_ADMIRAL_SERVICE_RECEPTION:
+            return ADMIRAL_HOST_RECEPTION;
+        case LMP_ADMIRAL_SERVICE_S2:
+            return ADMIRAL_HOST_S2;
+        case LMP_ADMIRAL_SERVICE_GIBSON:
+            return ADMIRAL_HOST_GIBSON;
+        case LMP_ADMIRAL_SERVICE_LAITT:
+            return ADMIRAL_HOST_LAITT;
+        default:
+            return NULL;
+    }
+}
+
+int lmp_admiral_service_get_port(lmp_admiral_service service) {
+    switch (service) {
+        case LMP_ADMIRAL_SERVICE_ADMIRAL:
+            return ADMIRAL_PORT_ADMIRAL;
+        case LMP_ADMIRAL_SERVICE_RECEPTION:
+            return ADMIRAL_PORT_RECEPTION;
+        case LMP_ADMIRAL_SERVICE_S2:
+            return ADMIRAL_PORT_S2;
+        case LMP_ADMIRAL_SERVICE_GIBSON:
+            return ADMIRAL_PORT_GIBSON;
+        case LMP_ADMIRAL_SERVICE_LAITT:
+            return ADMIRAL_PORT_LAITT;
+        default:
+            return 0;
+    }
 }
 
 // ===============================================================
@@ -290,6 +333,7 @@ const char* lmp_log_print_service_colors[] = {
     LMP_LOG_SERVICE_COLOR_RECEPTION,
     LMP_LOG_SERVICE_COLOR_S2,
     LMP_LOG_SERVICE_COLOR_GIBSON,
+    LMP_LOG_SERVICE_COLOR_LAITT,
 };
 
 void lmp_log_print(lmp_admiral_service sender, lmp_admiral_service destination, const char* message, lmp_log_print_type type) {

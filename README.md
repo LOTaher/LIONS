@@ -16,6 +16,7 @@ LIONS is currently composed of the following services:
 - **archimedes**: automated ssh port forwarding tool to allow me to access my self-hosted services on any device I need.
 - **s2**: scheduling service that sends LMP packets to different services through admiral.
 - **gibson**: http bridge for all other LIONS services
+- **laitt**: mqtt bridge for all other LIONS services
 
 Usage: `./install <service>`
 

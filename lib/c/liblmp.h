@@ -60,11 +60,18 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_HOST_GIBSON                 "100.113.240.39" // mirage
 #define ADMIRAL_ENDPOINT_GIBSON             "100.113.240.39:8800"
 
+#define ADMIRAL_PORT_LAITT                     1818
+#define ADMIRAL_HOST_LAITT                     "100.113.240.39" // mirage
+#define ADMIRAL_ENDPOINT_LAITT                 "100.113.240.39:5321"
+// #define ADMIRAL_HOST_LAITT                  "100.109.120.90" // inferno
+// #define ADMIRAL_ENDPOINT_LAITT              "100.109.120.90:1818"
+
 typedef enum {
     LMP_ADMIRAL_SERVICE_ADMIRAL,
     LMP_ADMIRAL_SERVICE_RECEPTION,
     LMP_ADMIRAL_SERVICE_S2,
     LMP_ADMIRAL_SERVICE_GIBSON,
+    LMP_ADMIRAL_SERVICE_LAITT,
     LMP_ADMIRAL_SERVICE_COUNT,
     LMP_ADMIRAL_SERVICE_NONE
 } lmp_admiral_service;
@@ -113,12 +120,28 @@ lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_se
 
 // --- Service ----------------------------------------------------------
 lmp_admiral_service  lmp_admiral_service_map_from_client(char* client);
+char*                lmp_admiral_service_get_host(lmp_admiral_service service);
+int                  lmp_admiral_service_get_port(lmp_admiral_service service);
 
 // ===============================================================
 // Reception
 // ===============================================================
 
 #define RECEPTION_BACKLOG 15
+
+// ===============================================================
+// Laitt
+// ===============================================================
+
+#define LAITT_MOSQUITTO_PORT    1883
+#define LAITT_MOSQUITTO_HOST    "100.109.120.90"
+#define LAITT_LIGHTS_TOPIC      "zigbee2mqtt/bedroom_lights"
+#define LAITT_LIGHTS_TOPIC_SET  "zigbee2mqtt/bedroom_lights/set"
+
+// TODO:
+// void lmp_laitt_send_message_on(struct mqtt_client* client, char* topic);
+// void lmp_laitt_send_message_packet(struct mqtt_client* client, char* topic, lmp_packet* packet);
+// lmp_laitt_check_if_on
 
 // ===============================================================
 // Log
@@ -134,6 +157,7 @@ lmp_admiral_service  lmp_admiral_service_map_from_client(char* client);
 #define LMP_LOG_SERVICE_COLOR_RECEPTION "\x1b[38;5;93m"
 #define LMP_LOG_SERVICE_COLOR_S2        "\x1b[38;5;201m"
 #define LMP_LOG_SERVICE_COLOR_GIBSON    "\x1b[38;5;34m"
+#define LMP_LOG_SERVICE_COLOR_LAITT     "\x1b[38;5;226m"
 
 #define LMP_LOG_COLOR_RESET             "\x1b[0m"
 
