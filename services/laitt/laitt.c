@@ -78,13 +78,16 @@ int main(void) {
     snprintf(logBuffer, sizeof(logBuffer), "Listening on %d", ADMIRAL_PORT_LAITT);
     lmp_log_print(LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LAITT, logBuffer, LMP_PRINT_TYPE_INFO);
 
-    lmp_packet* readPacket = arena_push(networkArena, sizeof(lmp_packet));
+    lmp_packet readPacket;
     lmp_result result;
-    lmp_packet_init(readPacket);
-    lmp_result_init(&result);
     u8 buffer[LMP_PACKET_MAX_SIZE];
 
+    mosquitto_loop_start(mosq);
+
     for (;;) {
+        lmp_packet_init(&readPacket);
+        lmp_result_init(&result);
+
         struct sockaddr_in clientAddr;
         socklen_t clientLength = sizeof(clientAddr);
 
@@ -103,7 +106,7 @@ int main(void) {
 
         lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Successfully connected", LMP_PRINT_TYPE_INFO);
 
-        lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), readPacket, &result);
+        lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), &readPacket, &result);
         if (error != LMP_ERR_NONE) {
             close(connectionFd);
             lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Bad packet. Closing connection", LMP_PRINT_TYPE_ERROR);
@@ -111,7 +114,7 @@ int main(void) {
             continue;
         }
 
-        mosquitto_publish(mosq, NULL, LAITT_LIGHTS_TOPIC_SET, readPacket->payload_length, readPacket->payload, 0, NULL);
+        mosquitto_publish(mosq, NULL, LAITT_LIGHTS_TOPIC_SET, readPacket.payload_length, readPacket.payload, 0, NULL);
         lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Sent payload. Closing connection", LMP_PRINT_TYPE_INFO);
 
         close(connectionFd);
