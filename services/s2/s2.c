@@ -46,7 +46,7 @@ s8 populate_scheduler(mem_arena* arena, u8** table) {
         memset(logBuffer, 0, sizeof(logBuffer));
 
         int s = fscanf(f, "%d:%d:%d %s", &hour, &minute, &second, payload);
-        if (s == -1) {
+        if (s != 4) {
             break;
         }
 
@@ -106,7 +106,6 @@ int main(void) {
 
     int c = connect(socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
     if (c == -1) {
-        perror("connect");
         lmp_log_print(LMP_ADMIRAL_SERVICE_S2, LMP_ADMIRAL_SERVICE_ADMIRAL, "Could not connect to admiral", LMP_PRINT_TYPE_ERROR);
         close(socketFd);
         return 1;
@@ -148,6 +147,8 @@ int main(void) {
                 lmp_log_print(LMP_ADMIRAL_SERVICE_S2, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to serialize and send packet", LMP_PRINT_TYPE_ERROR);
             }
         }
+
+        sleep(1);
     }
 
     close(socketFd);
