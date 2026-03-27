@@ -16,6 +16,7 @@
 
 
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -200,6 +201,7 @@ void* network_loop(void* args) {
 
 void* admiral_loop(void* args) {
     lmp_admiral_admiral_args* a = (lmp_admiral_admiral_args*)args;
+    lmp_result result;
 
     for (;;) {
         lmp_admiral_message* msg = lmp_admiral_queue_dequeue(a->queue);
@@ -212,11 +214,42 @@ void* admiral_loop(void* args) {
             continue;
         }
 
-        lmp_log_print(msg->sender, msg->destination, "Forwarding message", LMP_PRINT_TYPE_INFO);
-    }
+        int fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (fd == -1) {
+            lmp_log_print(msg->sender, msg->destination, "Failed to create socket to forward message", LMP_PRINT_TYPE_ERROR);
+            continue;
+        }
 
-    // TODO(laith): send the net packet, for now lets log to test
-    // use the new endpoint macros to connect to the IP and port to send
+        int opt = 1;
+        int s = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        if (s == -1) {
+            lmp_log_print(msg->sender, msg->destination, "Failed to set socket option", LMP_PRINT_TYPE_ERROR);
+            close(fd);
+            continue;
+        }
+
+        struct sockaddr_in destinationAddr = {0};
+        destinationAddr.sin_family = AF_INET;
+        destinationAddr.sin_port = htons(lmp_admiral_service_get_port(msg->destination));
+        destinationAddr.sin_addr.s_addr = inet_addr(lmp_admiral_service_get_host(msg->destination));
+
+        int c = connect(fd, (struct sockaddr*)&destinationAddr, sizeof(destinationAddr));
+        if (c == -1) {
+            lmp_log_print(msg->sender, msg->destination, "Could not establish a connection", LMP_PRINT_TYPE_ERROR);
+            close(fd);
+            continue;
+        }
+
+        lmp_result_init(&result);
+        lmp_net_send_packet(fd, &msg->packet, &result);
+        if (result.error != LMP_ERR_NONE) {
+            lmp_log_print(msg->sender, msg->destination, "Could not send message", LMP_PRINT_TYPE_ERROR);
+            close(fd);
+            continue;
+        }
+
+        lmp_log_print(msg->sender, msg->destination, "Forwarded message", LMP_PRINT_TYPE_INFO);
+    }
 
     return 0;
 }
