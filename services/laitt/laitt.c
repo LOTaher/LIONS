@@ -118,6 +118,7 @@ int main(void) {
         lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Sent payload. Closing connection", LMP_PRINT_TYPE_INFO);
 
         close(connectionFd);
+        arena_clear(networkArena);
     }
 
     return 0;
