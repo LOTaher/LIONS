@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // NOTE(laith): this fd must be connected to laitt
     struct sockaddr_in laittAddr = {0};
     laittAddr.sin_family = AF_INET;
     laittAddr.sin_port = htons(ADMIRAL_PORT_LAITT);
@@ -153,10 +154,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    if (strcmp(argv[1], "blue") == 0) {
-        printf("FUCK YEAH\n");
-        return 0;
-    }
+    // TODO(laith): custom hex colors!
 
     fprintf(stderr, "Error: Bad command\n");
     close(fd);
