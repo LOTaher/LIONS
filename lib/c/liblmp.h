@@ -20,7 +20,6 @@
 #include <pthread.h>
 #include "lt_base.h"
 #include "lmp.h"
-#define LT_ARENA_IMPLEMENTATION
 #include "lt_arena.h"
 
 // ===============================================================
@@ -138,10 +137,11 @@ int                  lmp_admiral_service_get_port(lmp_admiral_service service);
 #define LAITT_LIGHTS_TOPIC      "zigbee2mqtt/bedroom_lights"
 #define LAITT_LIGHTS_TOPIC_SET  "zigbee2mqtt/bedroom_lights/set"
 
-// TODO:
-// void lmp_laitt_send_message_on(struct mqtt_client* client, char* topic);
-// void lmp_laitt_send_message_packet(struct mqtt_client* client, char* topic, lmp_packet* packet);
-// lmp_laitt_check_if_on
+// NOTE(laith): fd should be a connection to laitt
+void lmp_laitt_send_message_packet(u32 fd, char* topic, lmp_packet* packet);
+
+// TODO ?:
+// void lmp_laitt_send_message_on(u32 fd, char* topic);
 
 // ===============================================================
 // Log

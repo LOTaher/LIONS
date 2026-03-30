@@ -25,8 +25,9 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include "liblmp.h"
+#define LT_ARENA_IMPLEMENTATION
 #include "lt_arena.h"
+#include "liblmp.h"
 #include "lt_base.h"
 #include "lmp.h"
 
@@ -314,6 +315,14 @@ int lmp_admiral_service_get_port(lmp_admiral_service service) {
             return 0;
     }
 }
+
+// ===============================================================
+// Laitt
+// ===============================================================
+
+// void lmp_laitt_send_message_packet(u32 fd, char* topic, lmp_packet* packet) {
+//
+// }
 
 // ===============================================================
 // Log

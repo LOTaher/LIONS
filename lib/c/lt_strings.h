@@ -20,7 +20,6 @@
 
 #include <string.h>
 
-#define LT_ARENA_IMPLEMENTATION
 #include "lt_arena.h"
 #include "lt_base.h"
 

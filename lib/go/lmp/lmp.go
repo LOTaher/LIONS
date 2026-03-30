@@ -20,8 +20,6 @@ import (
 	"errors"
 )
 
-// TODO(laith): go-ify this code, still too c-pilled
-
 /* [0] Version */
 var LmpVersions = []uint8{1, 2}
 
