@@ -17,6 +17,7 @@ LIONS is currently composed of the following services:
 - **s2**: scheduling service that sends LMP packets to different services through admiral.
 - **gibson**: http bridge for all other LIONS services
 - **laitt**: mqtt bridge for all other LIONS services
+- **lightctl**: cli tool to control the lights in my room
 
 Usage: `./install <service>`
 
