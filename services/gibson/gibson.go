@@ -3,7 +3,9 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -16,6 +18,17 @@ var LIONS_API_KEY = ""
 const ADMIRAL_ENDPOINT = "100.113.240.39:5321"
 const ENTRY_IP = "100.113.240.39"
 const ENTRY_PORT = 8800
+
+var GUEST_LIST = map[string]bool{"guest1": true}
+
+func verifyBody(body []byte) error {
+	str := string(body)
+	if !GUEST_LIST[str] {
+		return errors.New("Incorrect body content")
+	}
+
+	return nil
+}
 
 func createAdmiralConnection(pktChannel chan lmp.LmpPacket) {
 	localAddr := &net.TCPAddr{
@@ -39,11 +52,13 @@ func createAdmiralConnection(pktChannel chan lmp.LmpPacket) {
 
 		buf, err := pkt.Serialize()
 		if err != nil {
-			fmt.Printf("Unable to serialize packet\n")
-			continue
+			// NOTE(laith): all packets should serialize properly at this point
+			panic(err)
 		}
 
-		conn.Write(buf)
+		fmt.Println("payload that would be sent to admiral recieved: ", buf)
+
+		// conn.Write(buf)
 	}
 
 	conn.Close()
@@ -64,17 +79,31 @@ func generateKey() string {
 func receptionHandler(pktChannel chan lmp.LmpPacket) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			// key := r.Header.Get("X-LIONS-KEY")
-			// if key == "" {
-			// 	w.WriteHeader(http.StatusBadRequest)
-			// 	fmt.Fprintf(w, "No API Key Provided")
-			// 	return
-			// }
-			// if key != LIONS_API_KEY {
-			// 	w.WriteHeader(http.StatusBadRequest)
-			// 	fmt.Fprintf(w, "Incorrect API Key")
-			// 	return
-			// }
+			key := r.Header.Get("X-LIONS-KEY")
+			if key == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "No API Key Provided")
+				return
+			}
+			if key != LIONS_API_KEY {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Incorrect API Key")
+				return
+			}
+
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Failed to read body content")
+				return
+			}
+
+			err = verifyBody(body)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, err.Error())
+				return
+			}
 
 			var sendPacket lmp.LmpPacket = lmp.LmpPacketInit()
 
@@ -82,8 +111,8 @@ func receptionHandler(pktChannel chan lmp.LmpPacket) http.HandlerFunc {
 			sendPacket.Type = lmp.LmpTypeSend
 			sendPacket.Arg = lmp.LmpArgSend
 			sendPacket.Flags = 0
-			sendPacket.Payload = []byte("12?")
-			sendPacket.PayloadLength = 3
+			sendPacket.Payload = body
+			sendPacket.PayloadLength = len(body)
 
 			pktChannel <- sendPacket
 
@@ -92,6 +121,7 @@ func receptionHandler(pktChannel chan lmp.LmpPacket) http.HandlerFunc {
 			return
 		}
 
+		fmt.Fprintf(w, "Sent request to reception")
 		return
 	}
 }
@@ -122,5 +152,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/reception", receptionHandler(pktChannel))
 
-	http.ListenAndServe(":8080", cors(mux))
+	if err := http.ListenAndServe(":8081", cors(mux)); err != nil {
+		panic(err)
+	}
 }
