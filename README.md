@@ -8,8 +8,9 @@ It is built on top of it's own custom protocol that I designed myself called [LI
 
 LIONS runs on all my hardware. My hardware shares a naming convention: Counter-Strike maps. You will see these hostnames referenced in my code:
 - **mirage** is my personal laptop running MacOS Sequoia 15.6.1. It is an M1 13-inch Macbook Air. It is where I do all my development.
-- **nuke** is my home server running Debian Stable. It has an AMD Ryzen 5 CPU, 1 TB SSD, 2 4 TB HDDS, and a NVIDIA GTX 1060.
+- **nuke** is my home server running Debian Stable. It has an AMD Ryzen 5 CPU, 1 TB SSD, two 4 TB HDDS, and a NVIDIA GTX 1060.
 - **inferno** is a Raspberry Pi 4 running a headless Debian Lite.
+- **ancient** is a Dell Optiplex 7040 (SFF) running FreeBSD 14.4-RELEASE. It is using two 500 GB HDDs for extra storage.
 
 LIONS is currently composed of the following services:
 - **admiral**: central message broker running 24/7 that allows different LIONS supported services to talk to each other using LMP.
