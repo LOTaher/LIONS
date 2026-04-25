@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     packet.flags = LMP_FLAGS_NONE;
 
     if (strcmp(argv[1], "brightest") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":254}");
+        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":254,\"transition\":0.5}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "brighter") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":191.25}");
+        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":191,\"transition\":0.5}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "darker") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":127.50}");
+        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":127,\"transition\":0.5}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "darkest") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":63.75}");
+        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":63,\"transition\":0.5}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -98,9 +98,8 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-
     if (strcmp(argv[1], "warmer") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.5056,\"y\":0.4152},\"color_temp\":454,\"state\":\"ON\"}");
+        string8 payload = str8_lit("{\"color\":{\"x\":0.5056,\"y\":0.4152},\"color_temp\":454,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -111,7 +110,7 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "warmest") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.5267,\"y\":0.4133},\"color_temp\":500,\"state\":\"ON\"}");
+        string8 payload = str8_lit("{\"color\":{\"x\":0.5267,\"y\":0.4133},\"color_temp\":500,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -122,7 +121,7 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "coolest") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.3131,\"y\":0.3232},\"color_temp\":153,\"state\":\"ON\"}");
+        string8 payload = str8_lit("{\"color\":{\"x\":0.3131,\"y\":0.3232},\"color_temp\":153,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -133,7 +132,7 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "cooler") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.3804,\"y\":0.3767},\"color_temp\":250,\"state\":\"ON\"}");
+        string8 payload = str8_lit("{\"color\":{\"x\":0.3804,\"y\":0.3767},\"color_temp\":250,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -144,7 +143,18 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "standard") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.4599,\"y\":0.4106},\"color_temp\":370,\"state\":\"ON\"}");
+        string8 payload = str8_lit("{\"color\":{\"x\":0.4599,\"y\":0.4106},\"color_temp\":370,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        packet.payload = payload.str;
+        packet.payload_length = payload.length;
+        lmp_net_send_packet(fd, &packet, &result);
+        if (result.error != LMP_ERR_NONE) {
+            fprintf(stderr, "Error: Could not send packet\n");
+        }
+        return 0;
+    }
+
+    if (strcmp(argv[1], "bed") == 0) {
+        string8 payload = str8_lit("{\"brightness\":31,\"color\":{\"hue\":25,\"saturation\":95,\"x\":0.5267,\"y\":0.4133},\"color_temp\":498,\"transition\":0.5,\"state\":\"ON\"}");
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
