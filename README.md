@@ -14,6 +14,7 @@ LIONS runs on all my hardware. My hardware shares a naming convention: Counter-S
     - The jails on my FreeBSD host are named after the different forms of rotom and all have a different use case:
         - **wash** is running most LIONS services
         - **heat** is hosting my personal website and other public facing services
+- **overpass** is a Dell Optiplex 7040 running Arch Linux.
 
 LIONS is currently composed of the following services:
 - **admiral**: central message broker running 24/7 that allows different LIONS supported services to talk to each other using LMP.
@@ -22,5 +23,10 @@ LIONS is currently composed of the following services:
 - **gibson**: http bridge for LMP
 - **laitt**: mqtt bridge for LMP
 - **lightctl**: cli tool to control the lights in my room
+
+<img width="756" height="1008" alt="some lions hardware" src="https://github.com/user-attachments/assets/787d79af-fdf8-411d-9847-4538cb37161a" />
+
+> inferno, ancient and overpass on my shelf
+
 
 This project is not currently structured or documented for public use. Though, it is published for transparency and source availability under the terms of the GPL.
