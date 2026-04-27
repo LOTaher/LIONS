@@ -18,6 +18,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    mem_arena* arena = arena_create(KiB(1));
+    string8 admiralPayload = str8_lit("45");
+
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
         fprintf(stderr, "Failed to create socket\n");
@@ -32,15 +35,26 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // NOTE(laith): this fd must be connected to laitt
-    struct sockaddr_in laittAddr = {0};
-    laittAddr.sin_family = AF_INET;
-    laittAddr.sin_port = htons(ADMIRAL_PORT_LAITT);
-    laittAddr.sin_addr.s_addr = inet_addr(ADMIRAL_HOST_LAITT);
+    struct sockaddr_in localAddr = {0};
+    localAddr.sin_family = AF_INET;
+    localAddr.sin_port = htons(ADMIRAL_PORT_LIGHTCTL);
+    localAddr.sin_addr.s_addr = INADDR_ANY;
 
-    int c = connect(fd, (struct sockaddr*)&laittAddr, sizeof(laittAddr));
+    int b = bind(fd, (struct sockaddr *)&localAddr, sizeof(localAddr));
+    if (b == -1) {
+        lmp_log_print(LMP_ADMIRAL_SERVICE_LIGHTCTL, LMP_ADMIRAL_SERVICE_LIGHTCTL, "Failed to bind to port", LMP_PRINT_TYPE_ERROR);
+        close(fd);
+        return 1;
+    }
+
+    struct sockaddr_in admiralAddr = {0};
+    admiralAddr.sin_family = AF_INET;
+    admiralAddr.sin_port = htons(ADMIRAL_PORT_ADMIRAL);
+    admiralAddr.sin_addr.s_addr = inet_addr(ADMIRAL_HOST_ADMIRAL);
+
+    int c = connect(fd, (struct sockaddr*)&admiralAddr, sizeof(admiralAddr));
     if (c == -1) {
-        fprintf(stderr, "Failed to connect to laitt\n");
+        lmp_log_print(LMP_ADMIRAL_SERVICE_LIGHTCTL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to connect to admiral", LMP_PRINT_TYPE_ERROR);
         return 1;
     }
 
@@ -55,7 +69,8 @@ int main(int argc, char** argv) {
     packet.flags = LMP_FLAGS_NONE;
 
     if (strcmp(argv[1], "brightest") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":254,\"transition\":0.5}");
+        string8 message = str8_lit("{\"state\":\"ON\",\"brightness\":254,\"transition\":0.5}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -66,7 +81,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "brighter") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":191,\"transition\":0.5}");
+        string8 message = str8_lit("{\"state\":\"ON\",\"brightness\":191,\"transition\":0.5}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -77,7 +93,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "darker") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":127,\"transition\":0.5}");
+        string8 message = str8_lit("{\"state\":\"ON\",\"brightness\":127,\"transition\":0.5}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -88,7 +105,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "darkest") == 0) {
-        string8 payload = str8_lit("{\"state\":\"ON\",\"brightness\":63,\"transition\":0.5}");
+        string8 message = str8_lit("{\"state\":\"ON\",\"brightness\":63,\"transition\":0.5}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -99,7 +117,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "warmer") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.5056,\"y\":0.4152},\"color_temp\":454,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 message = str8_lit("{\"color\":{\"x\":0.5056,\"y\":0.4152},\"color_temp\":454,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -110,7 +129,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "warmest") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.5267,\"y\":0.4133},\"color_temp\":500,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 message = str8_lit("{\"color\":{\"x\":0.5267,\"y\":0.4133},\"color_temp\":500,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -121,7 +141,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "coolest") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.3131,\"y\":0.3232},\"color_temp\":153,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 message = str8_lit("{\"color\":{\"x\":0.3131,\"y\":0.3232},\"color_temp\":153,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -132,7 +153,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "cooler") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.3804,\"y\":0.3767},\"color_temp\":250,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 message = str8_lit("{\"color\":{\"x\":0.3804,\"y\":0.3767},\"color_temp\":250,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -143,7 +165,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "standard") == 0) {
-        string8 payload = str8_lit("{\"color\":{\"x\":0.4599,\"y\":0.4106},\"color_temp\":370,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 message = str8_lit("{\"color\":{\"x\":0.4599,\"y\":0.4106},\"color_temp\":370,\"brightness\":254,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);
@@ -154,7 +177,8 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "bed") == 0) {
-        string8 payload = str8_lit("{\"brightness\":31,\"color\":{\"hue\":25,\"saturation\":95,\"x\":0.5267,\"y\":0.4133},\"color_temp\":498,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 message = str8_lit("{\"brightness\":31,\"color\":{\"hue\":25,\"saturation\":95,\"x\":0.5267,\"y\":0.4133},\"color_temp\":498,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
         lmp_net_send_packet(fd, &packet, &result);

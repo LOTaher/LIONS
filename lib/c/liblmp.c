@@ -279,6 +279,10 @@ lmp_admiral_service lmp_admiral_service_map_from_client(char* client) {
         return LMP_ADMIRAL_SERVICE_LAITT;
     }
 
+    if (strcmp(client, ADMIRAL_ENDPOINT_LIGHTCTL) == 0) {
+        return LMP_ADMIRAL_SERVICE_LAITT;
+    }
+
     return LMP_ADMIRAL_SERVICE_NONE;
 }
 
@@ -294,6 +298,8 @@ char* lmp_admiral_service_get_host(lmp_admiral_service service) {
             return ADMIRAL_HOST_GIBSON;
         case LMP_ADMIRAL_SERVICE_LAITT:
             return ADMIRAL_HOST_LAITT;
+        case LMP_ADMIRAL_SERVICE_LIGHTCTL:
+            return ADMIRAL_HOST_LIGHTCTL;
         default:
             return NULL;
     }
@@ -311,6 +317,8 @@ int lmp_admiral_service_get_port(lmp_admiral_service service) {
             return ADMIRAL_PORT_GIBSON;
         case LMP_ADMIRAL_SERVICE_LAITT:
             return ADMIRAL_PORT_LAITT;
+        case LMP_ADMIRAL_SERVICE_LIGHTCTL:
+            return ADMIRAL_PORT_LIGHTCTL;
         default:
             return 0;
     }
@@ -343,6 +351,7 @@ const char* lmp_log_print_service_colors[] = {
     LMP_LOG_SERVICE_COLOR_S2,
     LMP_LOG_SERVICE_COLOR_GIBSON,
     LMP_LOG_SERVICE_COLOR_LAITT,
+    LMP_LOG_SERVICE_COLOR_LIGHTCTL,
 };
 
 void lmp_log_print(lmp_admiral_service sender, lmp_admiral_service destination, const char* message, lmp_log_print_type type) {

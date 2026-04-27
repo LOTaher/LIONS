@@ -71,12 +71,17 @@ u8          lmp_net_is_connection_alive(u32 fd);
 // #define ADMIRAL_HOST_LAITT               "100.109.120.90" // inferno
 // #define ADMIRAL_ENDPOINT_LAITT           "100.109.120.90:1818"
 
+#define ADMIRAL_PORT_LIGHTCTL               3456
+#define ADMIRAL_HOST_LIGHTCTL               "100.113.240.39" // mirage
+#define ADMIRAL_ENDPOINT_LIGHTCTL           "100.113.240.39"
+
 typedef enum {
     LMP_ADMIRAL_SERVICE_ADMIRAL,
     LMP_ADMIRAL_SERVICE_RECEPTION,
     LMP_ADMIRAL_SERVICE_S2,
     LMP_ADMIRAL_SERVICE_GIBSON,
     LMP_ADMIRAL_SERVICE_LAITT,
+    LMP_ADMIRAL_SERVICE_LIGHTCTL,
     LMP_ADMIRAL_SERVICE_COUNT,
     LMP_ADMIRAL_SERVICE_NONE
 } lmp_admiral_service;
@@ -164,6 +169,7 @@ void lmp_laitt_send_message_packet(u32 fd, char* topic, lmp_packet* packet);
 #define LMP_LOG_SERVICE_COLOR_S2        "\x1b[38;5;201m"
 #define LMP_LOG_SERVICE_COLOR_GIBSON    "\x1b[38;5;34m"
 #define LMP_LOG_SERVICE_COLOR_LAITT     "\x1b[38;5;226m"
+#define LMP_LOG_SERVICE_COLOR_LIGHTCTL  "\x1b[38;5;213m"
 
 #define LMP_LOG_COLOR_RESET             "\x1b[0m"
 
