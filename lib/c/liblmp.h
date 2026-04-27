@@ -64,12 +64,12 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_ENDPOINT_GIBSON             "100.113.240.39:8800"
 
 #define ADMIRAL_PORT_LAITT                  1818
-#define ADMIRAL_HOST_LAITT                  "10.1.0.1" // wash
-#define ADMIRAL_ENDPOINT_LAITT              "10.1.0.1:1818"
+// #define ADMIRAL_HOST_LAITT               "10.1.0.1" // wash
+// #define ADMIRAL_ENDPOINT_LAITT           "10.1.0.1:1818"
 // #define ADMIRAL_HOST_LAITT               "100.113.240.39" // mirage
 // #define ADMIRAL_ENDPOINT_LAITT           "100.113.240.39:1818"
-// #define ADMIRAL_HOST_LAITT               "100.109.120.90" // inferno
-// #define ADMIRAL_ENDPOINT_LAITT           "100.109.120.90:1818"
+#define ADMIRAL_HOST_LAITT                  "100.109.120.90" // inferno
+#define ADMIRAL_ENDPOINT_LAITT              "100.109.120.90:1818"
 
 #define ADMIRAL_PORT_LIGHTCTL               3456
 #define ADMIRAL_HOST_LIGHTCTL               "100.113.240.39" // mirage
