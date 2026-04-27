@@ -73,7 +73,7 @@ u8          lmp_net_is_connection_alive(u32 fd);
 
 #define ADMIRAL_PORT_LIGHTCTL               3456
 #define ADMIRAL_HOST_LIGHTCTL               "100.113.240.39" // mirage
-#define ADMIRAL_ENDPOINT_LIGHTCTL           "100.113.240.39"
+#define ADMIRAL_ENDPOINT_LIGHTCTL           "100.113.240.39:3456"
 
 typedef enum {
     LMP_ADMIRAL_SERVICE_ADMIRAL,

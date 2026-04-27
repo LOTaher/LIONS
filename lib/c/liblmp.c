@@ -281,7 +281,7 @@ lmp_admiral_service lmp_admiral_service_map_from_client(char* client) {
     }
 
     if (strcmp(client, ADMIRAL_ENDPOINT_LIGHTCTL) == 0) {
-        return LMP_ADMIRAL_SERVICE_LAITT;
+        return LMP_ADMIRAL_SERVICE_LIGHTCTL;
     }
 
     return LMP_ADMIRAL_SERVICE_NONE;
