@@ -138,6 +138,7 @@ char* lmp_admiral_services[] = {
     "s2",
     "gibson",
     "laitt",
+    "lightctl"
 };
 
 void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
