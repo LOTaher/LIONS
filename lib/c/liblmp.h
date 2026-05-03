@@ -40,8 +40,8 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_QUEUE_READ_RETRY_SECONDS    30
 
 #define ADMIRAL_PORT_ADMIRAL                5321
-#define ADMIRAL_HOST_ADMIRAL                "10.1.0.1" // wash
-#define ADMIRAL_ENDPOINT_ADMIRAL            "10.1.0.1:5321"
+#define ADMIRAL_HOST_ADMIRAL                "100.97.20.56" // wash
+#define ADMIRAL_ENDPOINT_ADMIRAL            "100.97.20.56:5321"
 // #define ADMIRAL_HOST_ADMIRAL             "100.113.240.39" // mirage
 // #define ADMIRAL_ENDPOINT_ADMIRAL         "100.113.240.39:5321"
 // #define ADMIRAL_HOST_ADMIRAL             "100.109.120.90" // inferno
@@ -52,8 +52,8 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_ENDPOINT_RECEPTION          "100.103.121.7:4200"
 
 #define ADMIRAL_PORT_S2                     6767
-#define ADMIRAL_HOST_S2                     "10.1.0.1" // wash
-#define ADMIRAL_ENDPOINT_S2                 "10.1.0.1:6767"
+#define ADMIRAL_HOST_S2                     "100.97.20.56" // wash
+#define ADMIRAL_ENDPOINT_S2                 "100.97.20.56:6767"
 // #define ADMIRAL_HOST_S2                  "100.113.240.39" // mirage
 // #define ADMIRAL_ENDPOINT_S2              "100.113.240.39:6767"
 // #define ADMIRAL_HOST_S2                  "100.103.121.7" // nuke
@@ -64,8 +64,8 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_ENDPOINT_GIBSON             "100.113.240.39:8800"
 
 #define ADMIRAL_PORT_LAITT                  1818
-// #define ADMIRAL_HOST_LAITT               "10.1.0.1" // wash
-// #define ADMIRAL_ENDPOINT_LAITT           "10.1.0.1:1818"
+// #define ADMIRAL_HOST_LAITT               "100.97.20.56" // wash
+// #define ADMIRAL_ENDPOINT_LAITT           "100.97.20.56:1818"
 // #define ADMIRAL_HOST_LAITT               "100.113.240.39" // mirage
 // #define ADMIRAL_ENDPOINT_LAITT           "100.113.240.39:1818"
 #define ADMIRAL_HOST_LAITT                  "100.109.120.90" // inferno
