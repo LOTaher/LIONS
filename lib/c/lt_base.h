@@ -68,9 +68,9 @@ typedef double f64;
     #define OS_MAC 0
 #endif
 
-#if !OS_WINDOWS && !OS_LINUX && !OS_MAC
-    #error Unsupported platform
-#endif
+// #if !OS_WINDOWS && !OS_LINUX && !OS_MAC
+//     #error Unsupported platform
+// #endif
 
 #ifdef DEBUG
     #define LOG(m) printf("Debug: %s\n", m)
