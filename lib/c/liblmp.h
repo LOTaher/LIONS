@@ -28,6 +28,7 @@
 
 lmp_error   lmp_net_send_packet(u32 fd, const lmp_packet* packet, lmp_result* result);
 lmp_error   lmp_net_recv_packet(u32 fd, u8* buffer, size_t size, lmp_packet* packet, lmp_result* result);
+// NOTE(laith): DEPRECATED
 char*       lmp_net_get_client(u32 fd, mem_arena* arena);
 u8          lmp_net_is_connection_alive(u32 fd);
 
@@ -40,10 +41,8 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_QUEUE_READ_RETRY_SECONDS    30
 
 #define ADMIRAL_PORT_ADMIRAL                5321
-#define ADMIRAL_HOST_ADMIRAL                "100.97.20.56" // wash
-#define ADMIRAL_ENDPOINT_ADMIRAL            "100.97.20.56:5321"
-// #define ADMIRAL_HOST_ADMIRAL             "100.113.240.39" // mirage
-// #define ADMIRAL_ENDPOINT_ADMIRAL         "100.113.240.39:5321"
+#define ADMIRAL_HOST_ADMIRAL                "100.113.240.39" // mirage
+#define ADMIRAL_ENDPOINT_ADMIRAL            "100.113.240.39:5321"
 // #define ADMIRAL_HOST_ADMIRAL             "100.109.120.90" // inferno
 // #define ADMIRAL_ENDPOINT_ADMIRAL         "100.109.120.90:5321"
 
@@ -52,10 +51,8 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_ENDPOINT_RECEPTION          "100.103.121.7:4200"
 
 #define ADMIRAL_PORT_S2                     6767
-#define ADMIRAL_HOST_S2                     "100.97.20.56" // wash
-#define ADMIRAL_ENDPOINT_S2                 "100.97.20.56:6767"
-// #define ADMIRAL_HOST_S2                  "100.113.240.39" // mirage
-// #define ADMIRAL_ENDPOINT_S2              "100.113.240.39:6767"
+#define ADMIRAL_HOST_S2                     "100.113.240.39" // mirage
+#define ADMIRAL_ENDPOINT_S2                 "100.113.240.39:6767"
 // #define ADMIRAL_HOST_S2                  "100.103.121.7" // nuke
 // #define ADMIRAL_ENDPOINT_S2              "100.103.121.7:6767"
 
@@ -64,8 +61,6 @@ u8          lmp_net_is_connection_alive(u32 fd);
 #define ADMIRAL_ENDPOINT_GIBSON             "100.113.240.39:8800"
 
 #define ADMIRAL_PORT_LAITT                  1818
-// #define ADMIRAL_HOST_LAITT               "100.97.20.56" // wash
-// #define ADMIRAL_ENDPOINT_LAITT           "100.97.20.56:1818"
 // #define ADMIRAL_HOST_LAITT               "100.113.240.39" // mirage
 // #define ADMIRAL_ENDPOINT_LAITT           "100.113.240.39:1818"
 #define ADMIRAL_HOST_LAITT                  "100.109.120.90" // inferno
@@ -129,6 +124,7 @@ void                 lmp_admiral_packet_sanitize(lmp_packet* packet);
 lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet);
 
 // --- Service ----------------------------------------------------------
+// NOTE(laith): DEPRECATED
 lmp_admiral_service  lmp_admiral_service_map_from_client(char* client);
 char*                lmp_admiral_service_get_host(lmp_admiral_service service);
 int                  lmp_admiral_service_get_port(lmp_admiral_service service);
