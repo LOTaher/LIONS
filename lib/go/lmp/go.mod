@@ -1,3 +1,3 @@
-module github.com/LOTaher/lmp
+module lmp
 
 go 1.23.12

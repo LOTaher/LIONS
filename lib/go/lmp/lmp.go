@@ -18,6 +18,7 @@ package lmp
 
 import (
 	"errors"
+	"slices"
 )
 
 /* [0] Version */
@@ -56,15 +57,17 @@ const (
 )
 
 /* [4] Payload */
-const LmpPayloadEmpty = uint8(0x00)
+const (
+	LmpPayloadEmpty    = uint8(0x00)
+	LmpPacketTerminate = uint8(0x7F)
+)
 
 /* Packet */
 const (
-	LmpPacketHeaderSize     = 0x04  // 4
-	LmpPacketMaxSize        = 0x5DC // 1500
-	LmpPacketMinSize        = 0x05  // 5
-	LmpPacketTerminate      = uint8(0x7F)
-	LmpPacketPayloadMaxSize = 0x5D7 // 1495
+	LmpPacketHeaderSize     = 4
+	LmpPacketMaxSize        = 1500
+	LmpPacketMinSize        = 5
+	LmpPacketPayloadMaxSize = 1495
 )
 
 type LmpPacket struct {
@@ -76,11 +79,7 @@ type LmpPacket struct {
 	PayloadLength int
 }
 
-func LmpPacketInit() LmpPacket {
-	return LmpPacket{}
-}
-
-func packetArgsAreValid(packetType uint8, arg uint8) bool {
+func invalidArgsForType(packetType uint8, arg uint8) bool {
 	switch packetType {
 	case LmpTypeInit:
 		return arg == LmpArgInitInit || arg == LmpArgInitAccept
@@ -101,13 +100,13 @@ func (p *LmpPacket) Serialize() ([]byte, error) {
 	var bufferSize = LmpPacketHeaderSize + p.PayloadLength + 1
 
 	if bufferSize < LmpPacketMinSize || bufferSize > LmpPacketMaxSize {
-		return nil, errors.New("Incorrect packet size")
+		return nil, errors.New("incorrect packet size")
 	}
 
 	var buffer = make([]byte, bufferSize)
 
 	if p.Payload == nil || p.PayloadLength < 1 {
-		return buffer, errors.New("Payload must at least contain the empty payload byte")
+		return buffer, errors.New("payload must at least contain the empty payload byte")
 	}
 
 	version := uint8(0)
@@ -119,20 +118,20 @@ func (p *LmpPacket) Serialize() ([]byte, error) {
 	}
 
 	if version == 0 {
-		return buffer, errors.New("Incorrect packet version provided")
+		return buffer, errors.New("incorrect packet version provided")
 	}
 
 	if p.Type < LmpTypeInit || p.Type > LmpTypeInvalid {
-		return buffer, errors.New("Incorrect packet type provided")
+		return buffer, errors.New("incorrect packet type provided")
 	}
 
-	if !packetArgsAreValid(p.Type, p.Arg) {
-		return buffer, errors.New("Incorrect packet arguments provided")
+	if !invalidArgsForType(p.Type, p.Arg) {
+		return buffer, errors.New("incorrect packet arguments provided")
 	}
 
 	if p.Type == LmpTypeInit || p.Type == LmpTypeInvalid {
 		if !(p.PayloadLength == 1 && p.Payload[0] == LmpPayloadEmpty) {
-			return buffer, errors.New("Incorrect payload content for init and invalid packets")
+			return buffer, errors.New("incorrect payload content for init and invalid packets")
 		}
 	}
 
@@ -147,62 +146,56 @@ func (p *LmpPacket) Serialize() ([]byte, error) {
 }
 
 func Deserialize(buffer []byte) (LmpPacket, error) {
-	packet := LmpPacketInit()
+	packet := LmpPacket{}
 
 	if buffer == nil {
-		return packet, errors.New("Invalid buffer")
+		return packet, errors.New("invalid buffer")
 	}
 
 	size := len(buffer)
 	if size < LmpPacketMinSize || size > LmpPacketMaxSize {
-		return packet, errors.New("Buffer has an invalid size")
+		return packet, errors.New("buffer has an invalid size")
 	}
 
-	version := uint8(0)
-	for _, v := range LmpVersions {
-		if buffer[0] == v {
-			version = buffer[0]
-			break
-		}
-	}
+	hasValidVersion := slices.Contains(LmpVersions, buffer[0])
 
-	if version == 0 {
-		return packet, errors.New("Incorrect version byte provided")
+	if !hasValidVersion {
+		return packet, errors.New("incorrect version byte provided")
 	}
 
 	if buffer[1] < LmpTypeInit || buffer[1] > LmpTypeInvalid {
-		return packet, errors.New("Incorrect type byte provided")
+		return packet, errors.New("incorrect type byte provided")
 	}
 
-	if !packetArgsAreValid(buffer[1], buffer[2]) {
-		return packet, errors.New("Incorrect argument byte provided")
+	if !invalidArgsForType(buffer[1], buffer[2]) {
+		return packet, errors.New("incorrect argument byte provided")
 	}
 
-	packet.Version = version
+	packet.Version = buffer[0]
 	packet.Type = buffer[1]
 	packet.Arg = buffer[2]
 	packet.Flags = buffer[3]
 
 	if (buffer[1] == LmpTypeInvalid || buffer[1] == LmpTypeInit) &&
 		buffer[LmpPacketHeaderSize] != LmpPayloadEmpty {
-		return packet, errors.New("Invalid payload provided")
+		return packet, errors.New("invalid payload provided")
 	}
 
 	if buffer[size-1] != LmpPacketTerminate {
-		return packet, errors.New("Payload is not terminated")
+		return packet, errors.New("payload is not terminated")
 	}
 
 	payloadLen := size - LmpPacketHeaderSize - 1
 	if payloadLen < 1 {
-		return packet, errors.New("Invalid payload provided")
+		return packet, errors.New("invalid payload provided")
 	}
 
 	if (packet.Type == LmpTypeInit || packet.Type == LmpTypeInvalid) && payloadLen != 1 {
-		return packet, errors.New("Invalid payload provided")
+		return packet, errors.New("invalid payload provided")
 	}
 
 	if payloadLen == 1 && buffer[LmpPacketHeaderSize] != LmpPayloadEmpty {
-		return packet, errors.New("Invalid payload provided")
+		return packet, errors.New("invalid payload provided")
 	}
 
 	packet.Payload = buffer[LmpPacketHeaderSize : LmpPacketHeaderSize+payloadLen]

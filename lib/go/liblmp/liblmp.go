@@ -20,28 +20,39 @@ import (
 	"errors"
 	"net"
 
-	"github.com/LOTaher/lmp"
+	"lmp"
 )
 
-func LmpNetSendPacket(conn net.Conn, packet *lmp.LmpPacket) error {
+type AdmiralService byte
+
+const (
+	Admiral AdmiralService = iota
+	Reception
+	S2
+	Gibson
+	Laitt
+	LightCtl
+)
+
+func SendPacket(conn net.Conn, packet *lmp.LmpPacket) error {
 	bytes, err := packet.Serialize()
 	if err != nil {
-		return errors.New("Could not serialize packet")
+		return errors.New("could not serialize packet")
 	}
 
 	n, err := conn.Write(bytes)
 	if err != nil {
-		return errors.New("Could not write bytes to connection")
+		return errors.New("could not write bytes to connection")
 	}
 
 	if n < 0 {
-		return errors.New("Did not send any bytes to connection")
+		return errors.New("did not send any bytes to connection")
 	}
 
 	return nil
 }
 
-func LmpNetRecvPacket(conn net.Conn) (lmp.LmpPacket, error) {
+func ReadPacket(conn net.Conn) (lmp.LmpPacket, error) {
 	var buffer = make([]byte, lmp.LmpPacketMaxSize)
 	terminated := false
 	size := 0
@@ -51,14 +62,14 @@ func LmpNetRecvPacket(conn net.Conn) (lmp.LmpPacket, error) {
 
 		n, err := conn.Read(scratch)
 		if err != nil {
-			return lmp.LmpPacket{}, errors.New("Could not read bytes from connection")
+			return lmp.LmpPacket{}, errors.New("could not read bytes from connection")
 		}
 
 		if n <= 0 {
 			break
 		}
 
-		for i := 0; i < n; i++ {
+		for i := range n {
 			buffer[size] = scratch[i]
 			size++
 
@@ -75,7 +86,7 @@ func LmpNetRecvPacket(conn net.Conn) (lmp.LmpPacket, error) {
 
 	pkt, err := lmp.Deserialize(buffer)
 	if err != nil {
-		return lmp.LmpPacket{}, errors.New("Unable to deserialize buffer")
+		return lmp.LmpPacket{}, errors.New("unable to deserialize buffer")
 	}
 
 	return pkt, nil
