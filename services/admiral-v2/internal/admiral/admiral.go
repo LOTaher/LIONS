@@ -22,7 +22,7 @@ type Admiral struct {
 }
 
 func New(config *config.Config) (Application, error) {
-	broker := broker.New(config.Services)
+	broker := broker.New(config.Services, config.StrictMode)
 
 	return &Admiral{
 		Config: config,
@@ -32,6 +32,7 @@ func New(config *config.Config) (Application, error) {
 
 func (a *Admiral) Start() error {
 	done := make(chan bool, 1)
+	errchan := make(chan error, 1)
 
 	// NOTE(laith): 2 listeners to handling shutdowns:
 	// 1. interruption, behavior should be to close all connections admiral has.
@@ -45,17 +46,26 @@ func (a *Admiral) Start() error {
 	}()
 
 	go func() {
-		a.Broker.Start()
+		if err := a.Broker.Start(errchan); err != nil {
+			errchan <- err
+		}
 
 		done <- true
 	}()
 
 	<-done
+
 	if err := a.Close(); err != nil {
 		return errors.New("error closing application: " + err.Error())
 	}
 
-	return nil
+	// NOTE(laith): non blocking channel read
+	select {
+	case err := <-errchan:
+		return err
+	default:
+		return nil
+	}
 }
 
 func (a *Admiral) Close() error {

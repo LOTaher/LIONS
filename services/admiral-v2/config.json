@@ -1,52 +1,53 @@
 {
   "services": [
     {
-      "id": "svc-001",
+      "id": 0,
       "name": "admiral",
-      "hostname": "admiral.example.com",
-      "ip": "10.0.1.10",
-      "port": "8080",
+      "hostname": "mirage",
+      "ip": "100.113.240.39",
+      "port": 5321,
       "color": "\u001b[38;5;48m"
     },
     {
-      "id": "svc-002",
+      "id": 1,
       "name": "reception",
-      "hostname": "reception.example.com",
-      "ip": "10.0.1.20",
-      "port": "8443",
+      "hostname": "ancient",
+      "ip": "100.103.121.7",
+      "port": 4200,
       "color": "\u001b[38;5;93m"
     },
     {
-      "id": "svc-003",
+      "id": 2,
       "name": "s2",
-      "hostname": "s2.example.com",
-      "ip": "10.0.1.30",
-      "port": "9090",
+      "hostname": "mirage",
+      "ip": "100.113.240.39",
+      "port": 6767,
       "color": "\u001b[38;5;201m"
     },
     {
-      "id": "svc-004",
+      "id": 3,
       "name": "gibson",
-      "hostname": "gibson.example.com",
-      "ip": "10.0.1.40",
-      "port": "9091",
+      "hostname": "mirage",
+      "ip": "100.113.240.39",
+      "port": 8800,
       "color": "\u001b[38;5;34m"
     },
     {
-      "id": "svc-005",
+      "id": 4,
       "name": "laitt",
-      "hostname": "laitt.example.com",
-      "ip": "10.0.1.50",
-      "port": "9092",
+      "hostname": "inferno",
+      "ip": "100.109.120.90",
+      "port": 1818,
       "color": "\u001b[38;5;226m"
     },
     {
-      "id": "svc-006",
+      "id": 5,
       "name": "lightctl",
-      "hostname": "lightctl.example.com",
-      "ip": "10.0.1.60",
-      "port": "9093",
+      "hostname": "mirage",
+      "ip": "100.113.240.39",
+      "port": 3456,
       "color": "\u001b[38;5;213m"
     }
-  ]
+  ],
+  "strictMode": false
 }

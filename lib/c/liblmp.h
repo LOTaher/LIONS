@@ -128,6 +128,7 @@ lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_se
 lmp_admiral_service  lmp_admiral_service_map_from_client(char* client);
 char*                lmp_admiral_service_get_host(lmp_admiral_service service);
 int                  lmp_admiral_service_get_port(lmp_admiral_service service);
+s8                   lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd);
 
 // ===============================================================
 // Reception

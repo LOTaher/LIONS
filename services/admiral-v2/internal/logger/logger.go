@@ -1,8 +1,10 @@
 package logger
 
 import (
-	"admiral/internal/broker"
 	"fmt"
+	"time"
+
+	"admiral/internal/service"
 )
 
 const LIONS_LOGO = "[LIONS //]"
@@ -33,6 +35,16 @@ const (
 )
 
 // [LIONS] (hostname | service) timestamp: message
-func Log(sender broker.Service, message string, level LogType) {
-	fmt.Printf("%s[%s]%s %s(%s | %s)%s _timestamp_: %s\n", LIONS_COLOR, LIONS_LOGO, COLOR_RESET, sender.Color, sender.Hostname, sender.Name, COLOR_RESET, message)
+func Log(sender service.Service, message string, level LogType) {
+	var logColor string
+	switch level {
+	case Info:
+		logColor = TYPE_COLOR_INFO
+	case Warn:
+		logColor = TYPE_COLOR_WARN
+	case Error:
+		logColor = TYPE_COLOR_ERROR
+	}
+
+	fmt.Printf("%s%s%s %s(%s | %s)%s %s: %s\n", logColor, LIONS_LOGO, COLOR_RESET, sender.Color, sender.Hostname, sender.Name, COLOR_RESET, time.Now().Format(time.TimeOnly), message)
 }

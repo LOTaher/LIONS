@@ -1,35 +1,214 @@
 package broker
 
-import "net"
+import (
+	"errors"
+	"io"
+	"liblmp"
+	"lmp"
+	"net"
 
-type Service struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	Hostname string `json:"hostname"`
-	IpAddr   string `json:"ip"`
-	Port     string `json:"port"`
-	Color    string `json:"color"`
-}
+	"admiral/internal/logger"
+	"admiral/internal/message"
+	"admiral/internal/service"
+)
 
 type Connection struct {
-	service   Service
-	appConn   net.TCPConn
-	sonarConn net.TCPConn
+	service   service.Service
+	appConn   net.Conn
+	sonarConn net.Conn
 }
 
 type Broker struct {
-	Services    []Service
+	Services    map[int]service.Service
 	Connections []Connection
+	strictMode  bool
+	messages    chan message.Message
 }
 
-func New(services []Service) Broker {
+func New(configServices []service.Service, strictMode bool) Broker {
+	services := service.CreateServiceMap(configServices)
 	return Broker{
-		Services: services,
+		Services:   services,
+		strictMode: strictMode,
 	}
 }
 
-func (b *Broker) Start() {
+func (b *Broker) Start(errchan chan error) error {
 	// Listen for all oncoming connections
+	listener, err := net.Listen("tcp", ":5321")
+	if err != nil {
+		return errors.New("error creating tcp listener: " + err.Error())
+	}
+
+	logger.Log(b.Services[0], "listening on 5321", logger.Info)
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			logger.Log(b.Services[0], "unable to accept connection", logger.Error)
+			// errchan <- errors.New("error in accepting connection: " + err.Error())
+			continue
+		}
+
+		service, err := b.handshake(conn)
+		if err != nil {
+			logger.Log(b.Services[0], "unable to handshake the connection: "+err.Error(), logger.Error)
+			// errchan <- errors.New("error in handshaking the connection: " + err.Error())
+			conn.Close()
+			continue
+		}
+
+		logger.Log(b.Services[service.Id], "established connection with admiral", logger.Info)
+		connection := Connection{
+			appConn:   conn,
+			sonarConn: nil,
+			service:   service,
+		}
+
+		b.Connections = append(b.Connections, connection)
+
+		go b.serveConnection(connection)
+	}
 }
 
-func (b *Broker) CloseAllConnections()
+func (b *Broker) serveConnection(conn Connection) {
+	for {
+		packet, err := liblmp.ReadPacket(conn.appConn)
+		if err != nil {
+			if err == io.EOF {
+				logger.Log(conn.service, "disconnected", logger.Warn)
+				conn.appConn.Close()
+				break
+			} else {
+				logger.Log(conn.service, "sent bad packet: "+err.Error(), logger.Error)
+				continue
+			}
+		}
+
+		var sendPacket lmp.LmpPacket
+		destinationId := packet.Payload[0]
+
+		// Removing the admiral header
+		packet.Payload = packet.Payload[2:]
+		packet.PayloadLength = packet.PayloadLength - 2
+
+		// ---- Handle all packet type cases ----
+		switch packet.Type {
+		case lmp.LmpTypePing:
+			sendPacket = lmp.LmpPacket{
+				Version: 0x02,
+				Type:    lmp.LmpTypePing,
+				Arg:     lmp.LmpArgPing,
+				Flags:   lmp.LmpFlagsNone,
+				Payload: []byte{lmp.LmpPayloadEmpty},
+			}
+		case lmp.LmpTypeSend:
+			sendPacket = lmp.LmpPacket{
+				Version: 0x02,
+				Type:    lmp.LmpTypeSend,
+				Arg:     lmp.LmpArgSend,
+				Flags:   lmp.LmpFlagsNone,
+				Payload: packet.Payload,
+			}
+		case lmp.LmpTypeTerm:
+			// TODO
+		}
+
+		b.getServiceConnection(int(destinationId))
+		if err := liblmp.SendPacket(conn.appConn, &sendPacket); err != nil {
+			// TODO
+		}
+		logger.Log(b.Services[conn.service.Id], "sent packet", logger.Info)
+
+	}
+}
+
+func (b *Broker) handshake(conn net.Conn) (service.Service, error) {
+	initPacket, err := liblmp.ReadPacket(conn)
+	if err != nil {
+		return service.Service{}, errors.New("could not read init packet")
+	}
+
+	if initPacket.Type != lmp.LmpTypeInit || initPacket.Arg != lmp.LmpArgInitInit {
+		conn.Close()
+		return service.Service{}, errors.New("incorrect init packet structure")
+	}
+
+	sendPacket, err := liblmp.ReadPacket(conn)
+	if err != nil {
+		return service.Service{}, errors.New("could not read send packet")
+	}
+
+	if sendPacket.Type != lmp.LmpTypeSend || sendPacket.Arg != lmp.LmpArgSend {
+		conn.Close()
+		return service.Service{}, errors.New("incorrect send packet structure")
+	}
+
+	acceptPacket := lmp.LmpPacket{
+		Version:       0x02,
+		Type:          lmp.LmpTypeInit,
+		Arg:           lmp.LmpArgInitAccept,
+		Flags:         lmp.LmpFlagsNone,
+		Payload:       []byte{lmp.LmpPayloadEmpty},
+		PayloadLength: 1,
+	}
+
+	if err := liblmp.SendPacket(conn, &acceptPacket); err != nil {
+		conn.Close()
+		return service.Service{}, errors.New("unable to send accept packet")
+	}
+
+	destinationId := sendPacket.Payload[0]
+	destinationIsAdmiral := false
+	senderId := sendPacket.Payload[1]
+	senderIsValid := false
+
+	destinationService, ok := b.Services[int(destinationId)]
+	if ok {
+		if destinationService.Name == "admiral" {
+			destinationIsAdmiral = true
+		}
+	}
+
+	senderService, ok := b.Services[int(senderId)]
+	if ok {
+		if b.strictMode {
+			addr := conn.RemoteAddr().(*net.TCPAddr)
+			ip := addr.IP.String()
+			port := addr.Port
+
+			if senderService.IpAddr == ip || senderService.Port == port {
+				senderIsValid = true
+			}
+		} else {
+			senderIsValid = true
+		}
+	}
+
+	if !destinationIsAdmiral {
+		return service.Service{}, errors.New("payload destination is not admiral")
+	}
+
+	if !senderIsValid {
+		return service.Service{}, errors.New("payload sender is invalid")
+	}
+
+	return senderService, nil
+}
+
+func (b *Broker) getServiceConnection(id int) (net.Conn, error) {
+	// is the service already connected with admiral? use that connection
+	for _, conn := range b.Connections {
+		if conn.service.Id == id {
+			return conn.appConn, nil
+		}
+	}
+
+	// does the service need to connect with admiral
+	connection, err := net.Dial("tcp", b.Services[id].Hostname+":"+string(b.Services[id].Port))
+	if err != nil {
+		return nil, errors.New("could not create connection with service")
+	}
+
+	return connection, nil
+}

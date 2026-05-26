@@ -5,11 +5,12 @@ import (
 	"errors"
 	"os"
 
-	"admiral/internal/broker"
+	"admiral/internal/service"
 )
 
 type Config struct {
-	Services []broker.Service `json:"services"`
+	Services   []service.Service `json:"services"`   // Array of services
+	StrictMode bool              `json:"strictMode"` // Do you want admiral to be strict in verifying the IPs and ports of the connection
 }
 
 func Read() (Config, error) {

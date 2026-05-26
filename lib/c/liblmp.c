@@ -325,6 +325,63 @@ int lmp_admiral_service_get_port(lmp_admiral_service service) {
     }
 }
 
+s8 lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd) {
+    lmp_packet sendInitPacket = {0};
+    lmp_result result = {0};
+    lmp_packet_init(&sendInitPacket);
+    lmp_result_init(&result);
+
+    sendInitPacket.version = 0x02;
+    sendInitPacket.type = LMP_TYPE_INIT;
+    sendInitPacket.arg = LMP_ARG_INIT_INIT;
+    u8 emptyPayload[] = {LMP_PAYLOAD_EMPTY};
+    sendInitPacket.payload = emptyPayload;
+    sendInitPacket.payload_length = 1;
+
+    lmp_net_send_packet(fd, &sendInitPacket, &result);
+
+    if (result.error != LMP_ERR_NONE) {
+        printf("unable to send packet (INIT)\n");
+        return 0;
+    }
+
+    lmp_packet sendSendPacket = {0};
+    lmp_packet_init(&sendSendPacket);
+
+    sendSendPacket.version = 0x02;
+    sendSendPacket.type = LMP_TYPE_SEND;
+    sendSendPacket.arg = LMP_ARG_SEND;
+    u8 payload[] = {LMP_ADMIRAL_SERVICE_ADMIRAL, service};
+    sendSendPacket.payload = payload;
+    sendSendPacket.payload_length = 2;
+
+    lmp_net_send_packet(fd, &sendSendPacket, &result);
+
+    if (result.error != LMP_ERR_NONE) {
+        printf("unable to send packet (SEND)\n");
+        return 0;
+    }
+
+    u8 buffer[LMP_PACKET_MAX_SIZE];
+    lmp_packet recvPacket = {0};
+    lmp_packet_init(&recvPacket);
+
+    lmp_error error = lmp_net_recv_packet(fd, buffer, sizeof(buffer), &recvPacket, &result);
+    
+    if (error != LMP_ERR_NONE) {
+        printf("unable to recv packet\n");
+        return 0;
+    }
+
+    if (recvPacket.arg != LMP_ARG_INIT_ACCEPT) {
+        printf("recv arg from admiral bad\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+
 // ===============================================================
 // Laitt
 // ===============================================================

@@ -109,6 +109,13 @@ int main(void) {
         close(socketFd);
         return 1;
     }
+    
+    s8 handshakeSuccess = lmp_admiral_service_handshake(LMP_ADMIRAL_SERVICE_S2, socketFd);
+    if (!handshakeSuccess) {
+        lmp_log_print(LMP_ADMIRAL_SERVICE_S2, LMP_ADMIRAL_SERVICE_ADMIRAL, "Handshake with admiral failed", LMP_PRINT_TYPE_ERROR);
+        close(socketFd);
+        return 1;
+    }
 
     for (;;) {
         time_t timestamp = time(NULL);

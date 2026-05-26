@@ -18,6 +18,7 @@ package liblmp
 
 import (
 	"errors"
+	"io"
 	"net"
 
 	"lmp"
@@ -54,37 +55,30 @@ func SendPacket(conn net.Conn, packet *lmp.LmpPacket) error {
 
 func ReadPacket(conn net.Conn) (lmp.LmpPacket, error) {
 	var buffer = make([]byte, lmp.LmpPacketMaxSize)
-	terminated := false
 	size := 0
+	b := make([]byte, 1)
 
 	for {
-		var scratch = make([]byte, lmp.LmpPacketMaxSize)
-
-		n, err := conn.Read(scratch)
+		// NOTE(laith): reading one character at a time so i don't discard two packets at once after only seeing the first packet's terminating byte
+		_, err := io.ReadFull(conn, b)
 		if err != nil {
-			return lmp.LmpPacket{}, errors.New("could not read bytes from connection")
+			// NOTE(laith): not surfacing my own error as its important to keep io.EOF readable upstream
+			return lmp.LmpPacket{}, err
 		}
 
-		if n <= 0 {
+		buffer[size] = b[0]
+		size++
+
+		if b[0] == lmp.LmpPacketTerminate {
 			break
 		}
 
-		for i := range n {
-			buffer[size] = scratch[i]
-			size++
-
-			if scratch[i] == lmp.LmpPacketTerminate {
-				terminated = true
-				break
-			}
-		}
-
-		if terminated {
-			break
+		if size >= lmp.LmpPacketMaxSize {
+			return lmp.LmpPacket{}, errors.New("packet exceeded max size")
 		}
 	}
 
-	pkt, err := lmp.Deserialize(buffer)
+	pkt, err := lmp.Deserialize(buffer[:size])
 	if err != nil {
 		return lmp.LmpPacket{}, errors.New("unable to deserialize buffer")
 	}
