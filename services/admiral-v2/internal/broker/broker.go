@@ -57,7 +57,7 @@ func (b *Broker) Start() error {
 			continue
 		}
 
-		logger.Log(b.Services[service.Id], "established connection with admiral", logger.Info)
+		logger.Log(b.Services[service.Id], "CONNECTED", logger.Info)
 		connection := Connection{
 			appConn:   conn,
 			sonarConn: nil,
@@ -75,7 +75,7 @@ func (b *Broker) serveConnection(conn Connection) {
 		packet, err := liblmp.ReadPacket(conn.appConn)
 		if err != nil {
 			if err == io.EOF {
-				logger.Log(conn.service, "disconnected", logger.Warn)
+				logger.Log(conn.service, "DISCONNECTED", logger.Warn)
 				conn.appConn.Close()
 				break
 			} else {
