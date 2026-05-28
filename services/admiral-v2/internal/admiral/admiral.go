@@ -70,7 +70,7 @@ func (a *Admiral) Start() error {
 }
 
 func (a *Admiral) Close() error {
-	fmt.Printf("%s Closing admiral\n", logger.LIONS_LOGO_COLORED)
+	fmt.Printf("%s Closing Admiral - Message Broker - Version 2\n", logger.LIONS_LOGO_COLORED)
 	// Broker.CloseAllConnections
 
 	return nil

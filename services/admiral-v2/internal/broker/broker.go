@@ -41,7 +41,7 @@ func (b *Broker) Start() error {
 		return errors.New("error creating tcp listener: " + err.Error())
 	}
 
-	fmt.Printf("%s Starting admiral\n", logger.LIONS_LOGO_COLORED)
+	fmt.Printf("%s Starting Admiral - Message Broker - Version 2\n", logger.LIONS_LOGO_COLORED)
 
 	for {
 		conn, err := listener.Accept()
@@ -85,7 +85,7 @@ func (b *Broker) serveConnection(conn Connection) {
 		}
 
 		var sendPacket lmp.LmpPacket
-		destinationId := packet.Payload[0] - '0'
+		destinationId := packet.Payload[0]
 
 		// Removing the admiral header
 		packet.Payload = packet.Payload[2:]
@@ -117,11 +117,13 @@ func (b *Broker) serveConnection(conn Connection) {
 
 		serviceConn, err := b.getServiceConnection(int(destinationId))
 		if err != nil {
-			// TODO
+			logger.Log(conn.service, fmt.Sprintf("BAD SERVICE: %s", err.Error()), logger.Error)
+			continue
 		}
 
 		if err := liblmp.SendPacket(serviceConn, &sendPacket); err != nil {
-			// TODO
+			logger.Log(conn.service, fmt.Sprintf("BAD PACKET: %s", err.Error()), logger.Error)
+			continue
 		}
 
 		logMessage := fmt.Sprintf("Type 0x0%x Arg 0x0%x -> %s", packet.Type, packet.Arg, logger.BuildServiceString(b.Services[int(destinationId)]))
@@ -204,6 +206,11 @@ func (b *Broker) handshake(conn net.Conn) (service.Service, error) {
 }
 
 func (b *Broker) getServiceConnection(id int) (net.Conn, error) {
+	// is it a valid service
+	if _, ok := b.Services[id]; !ok {
+		return nil, errors.New(fmt.Sprintf("service with id %d does not exist", id))
+	}
+
 	// is the service already connected with admiral? use that connection
 	for _, conn := range b.Connections {
 		if conn.service.Id == id {
@@ -212,7 +219,7 @@ func (b *Broker) getServiceConnection(id int) (net.Conn, error) {
 	}
 
 	// does the service need to connect with admiral
-	connection, err := net.Dial("tcp", fmt.Sprintf("%s:%d", b.Services[id].Hostname, b.Services[id].Port))
+	connection, err := net.Dial("tcp", fmt.Sprintf("%s:%d", b.Services[id].IpAddr, b.Services[id].Port))
 	if err != nil {
 		return nil, errors.New("could not create connection with service")
 	}
