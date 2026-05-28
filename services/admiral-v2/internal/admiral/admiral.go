@@ -9,6 +9,7 @@ import (
 
 	"admiral/internal/broker"
 	"admiral/internal/config"
+	"admiral/internal/logger"
 )
 
 type Application interface {
@@ -46,7 +47,7 @@ func (a *Admiral) Start() error {
 	}()
 
 	go func() {
-		if err := a.Broker.Start(errchan); err != nil {
+		if err := a.Broker.Start(); err != nil {
 			errchan <- err
 		}
 
@@ -69,7 +70,7 @@ func (a *Admiral) Start() error {
 }
 
 func (a *Admiral) Close() error {
-	fmt.Println("Closing Admiral")
+	fmt.Printf("%s Closing admiral\n", logger.LIONS_LOGO_COLORED)
 	// Broker.CloseAllConnections
 
 	return nil

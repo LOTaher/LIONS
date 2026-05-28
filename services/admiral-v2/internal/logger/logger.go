@@ -8,6 +8,7 @@ import (
 )
 
 const LIONS_LOGO = "[LIONS //]"
+const LIONS_LOGO_COLORED = LIONS_COLOR + LIONS_LOGO + COLOR_RESET
 
 const (
 	LIONS_COLOR = "\x1b[38;5;220m"
@@ -47,4 +48,8 @@ func Log(sender service.Service, message string, level LogType) {
 	}
 
 	fmt.Printf("%s%s%s %s(%s | %s)%s %s: %s\n", logColor, LIONS_LOGO, COLOR_RESET, sender.Color, sender.Hostname, sender.Name, COLOR_RESET, time.Now().Format(time.TimeOnly), message)
+}
+
+func BuildServiceString(service service.Service) string {
+	return fmt.Sprintf("%s(%s | %s)%s", service.Color, service.Hostname, service.Name, COLOR_RESET)
 }

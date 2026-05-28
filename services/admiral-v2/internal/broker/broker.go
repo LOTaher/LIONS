@@ -2,6 +2,7 @@ package broker
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"liblmp"
 	"lmp"
@@ -33,27 +34,25 @@ func New(configServices []service.Service, strictMode bool) Broker {
 	}
 }
 
-func (b *Broker) Start(errchan chan error) error {
+func (b *Broker) Start() error {
 	// Listen for all oncoming connections
 	listener, err := net.Listen("tcp", ":5321")
 	if err != nil {
 		return errors.New("error creating tcp listener: " + err.Error())
 	}
 
-	logger.Log(b.Services[0], "listening on 5321", logger.Info)
+	fmt.Printf("%s Starting admiral\n", logger.LIONS_LOGO_COLORED)
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			logger.Log(b.Services[0], "unable to accept connection", logger.Error)
-			// errchan <- errors.New("error in accepting connection: " + err.Error())
 			continue
 		}
 
 		service, err := b.handshake(conn)
 		if err != nil {
 			logger.Log(b.Services[0], "unable to handshake the connection: "+err.Error(), logger.Error)
-			// errchan <- errors.New("error in handshaking the connection: " + err.Error())
 			conn.Close()
 			continue
 		}
@@ -87,6 +86,7 @@ func (b *Broker) serveConnection(conn Connection) {
 
 		var sendPacket lmp.LmpPacket
 		destinationId := packet.Payload[0]
+		fmt.Println("destination ID ", destinationId)
 
 		// Removing the admiral header
 		packet.Payload = packet.Payload[2:]
@@ -118,7 +118,9 @@ func (b *Broker) serveConnection(conn Connection) {
 		if err := liblmp.SendPacket(conn.appConn, &sendPacket); err != nil {
 			// TODO
 		}
-		logger.Log(b.Services[conn.service.Id], "sent packet", logger.Info)
+
+		logMessage := fmt.Sprintf("Type 0x0%x Arg 0x0%x -> %s", packet.Type, packet.Arg, logger.BuildServiceString(b.Services[int(destinationId)]))
+		logger.Log(b.Services[conn.service.Id], logMessage, logger.Info)
 
 	}
 }
@@ -205,7 +207,7 @@ func (b *Broker) getServiceConnection(id int) (net.Conn, error) {
 	}
 
 	// does the service need to connect with admiral
-	connection, err := net.Dial("tcp", b.Services[id].Hostname+":"+string(b.Services[id].Port))
+	connection, err := net.Dial("tcp", fmt.Sprintf("%s:%d", b.Services[id].Hostname, b.Services[id].Port))
 	if err != nil {
 		return nil, errors.New("could not create connection with service")
 	}
