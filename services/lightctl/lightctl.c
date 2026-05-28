@@ -19,7 +19,8 @@ int main(int argc, char** argv) {
     }
 
     mem_arena* arena = arena_create(KiB(1));
-    string8 admiralPayload = str8_lit("45");
+    u8 admiralHeader[2] = { LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LIGHTCTL };
+    string8 admiralPayload = { admiralHeader, sizeof(admiralHeader) };
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
@@ -35,18 +36,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    struct sockaddr_in localAddr = {0};
-    localAddr.sin_family = AF_INET;
-    localAddr.sin_port = htons(ADMIRAL_PORT_LIGHTCTL);
-    localAddr.sin_addr.s_addr = INADDR_ANY;
-
-    int b = bind(fd, (struct sockaddr *)&localAddr, sizeof(localAddr));
-    if (b == -1) {
-        lmp_log_print(LMP_ADMIRAL_SERVICE_LIGHTCTL, LMP_ADMIRAL_SERVICE_LIGHTCTL, "Failed to bind to port", LMP_PRINT_TYPE_ERROR);
-        close(fd);
-        return 1;
-    }
-
     struct sockaddr_in admiralAddr = {0};
     admiralAddr.sin_family = AF_INET;
     admiralAddr.sin_port = htons(ADMIRAL_PORT_ADMIRAL);
@@ -57,6 +46,8 @@ int main(int argc, char** argv) {
         lmp_log_print(LMP_ADMIRAL_SERVICE_LIGHTCTL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to connect to admiral", LMP_PRINT_TYPE_ERROR);
         return 1;
     }
+
+    lmp_admiral_service_handshake(LMP_ADMIRAL_SERVICE_LIGHTCTL, fd);
 
     lmp_packet packet;
     lmp_result result;
