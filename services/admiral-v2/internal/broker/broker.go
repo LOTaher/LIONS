@@ -85,8 +85,7 @@ func (b *Broker) serveConnection(conn Connection) {
 		}
 
 		var sendPacket lmp.LmpPacket
-		destinationId := packet.Payload[0]
-		fmt.Println("destination ID ", destinationId)
+		destinationId := packet.Payload[0] - '0'
 
 		// Removing the admiral header
 		packet.Payload = packet.Payload[2:]
@@ -96,26 +95,32 @@ func (b *Broker) serveConnection(conn Connection) {
 		switch packet.Type {
 		case lmp.LmpTypePing:
 			sendPacket = lmp.LmpPacket{
-				Version: 0x02,
-				Type:    lmp.LmpTypePing,
-				Arg:     lmp.LmpArgPing,
-				Flags:   lmp.LmpFlagsNone,
-				Payload: []byte{lmp.LmpPayloadEmpty},
+				Version:       0x02,
+				Type:          lmp.LmpTypePing,
+				Arg:           lmp.LmpArgPing,
+				Flags:         lmp.LmpFlagsNone,
+				Payload:       []byte{lmp.LmpPayloadEmpty},
+				PayloadLength: 1,
 			}
 		case lmp.LmpTypeSend:
 			sendPacket = lmp.LmpPacket{
-				Version: 0x02,
-				Type:    lmp.LmpTypeSend,
-				Arg:     lmp.LmpArgSend,
-				Flags:   lmp.LmpFlagsNone,
-				Payload: packet.Payload,
+				Version:       0x02,
+				Type:          lmp.LmpTypeSend,
+				Arg:           lmp.LmpArgSend,
+				Flags:         lmp.LmpFlagsNone,
+				Payload:       packet.Payload,
+				PayloadLength: packet.PayloadLength,
 			}
 		case lmp.LmpTypeTerm:
 			// TODO
 		}
 
-		b.getServiceConnection(int(destinationId))
-		if err := liblmp.SendPacket(conn.appConn, &sendPacket); err != nil {
+		serviceConn, err := b.getServiceConnection(int(destinationId))
+		if err != nil {
+			// TODO
+		}
+
+		if err := liblmp.SendPacket(serviceConn, &sendPacket); err != nil {
 			// TODO
 		}
 
