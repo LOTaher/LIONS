@@ -1,0 +1,16 @@
+{
+  "entries": [
+    {
+      "destination": 4,
+      "payload": "{\"brightness\":31,\"color\":{\"hue\":25,\"saturation\":95,\"x\":0.5267,\"y\":0.4133},\"color_temp\":498,\"transition\":0.5}",
+      "time": "16:53:00",
+      "note": "bed lights on at 10"
+    },
+    {
+      "destination": 4,
+      "payload": "{\"color\":{\"x\":0.5267,\"y\":0.4133},\"color_temp\":500,\"brightness\":254,\"transition\":0.5\"}",
+      "time": "18:00:00",
+      "note": "lights get warmer at 6"
+    }
+  ]
+}
