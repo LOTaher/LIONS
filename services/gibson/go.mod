@@ -1,7 +1,12 @@
-module github.com/LOTaher/LIONS
+module gibson
 
 go 1.23.12
 
-require github.com/LOTaher/lmp v0.0.0
+require (
+	lmp v0.0.0
+	liblmp v0.0.0
+)
 
-replace github.com/LOTaher/lmp => ../../lib/go/lmp
+replace lmp => ../../lib/go/lmp
+
+replace liblmp => ../../lib/go/liblmp
