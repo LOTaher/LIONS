@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#define LT_ARENA_IMPLEMENTATION
 #include "lt_arena.h"
 #include "liblmp.h"
 #include "lt_base.h"
@@ -93,7 +92,7 @@ lmp_error lmp_net_recv_packet(u32 fd, u8* buffer, size_t size, lmp_packet* packe
     return LMP_ERR_BAD_INPUT;
 }
 
-char* lmp_net_get_client(u32 fd, mem_arena* arena) {
+char* lmp_net_get_client(u32 fd, arena* arena) {
     struct sockaddr clientAddr = {0};
     socklen_t clientAddrLen = sizeof(clientAddr);
     int g = getpeername(fd, (struct sockaddr*)&clientAddr, &clientAddrLen);
@@ -142,8 +141,8 @@ char* lmp_admiral_services[] = {
 };
 
 void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
-    mem_arena* arena = arena_create(MiB(10));
-    queue->arena = arena;
+    arena* queue_arena = arena_create(MiB(10));
+    queue->arena = queue_arena;
     queue->size = 0;
     queue->capacity = capacity;
     queue->head = 0;
@@ -153,7 +152,7 @@ void lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity) {
     pthread_mutex_init(&queue->mutex, NULL);
 }
 
-s8 lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, lmp_admiral_message* message) {
+b8 lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, lmp_admiral_message* message) {
     pthread_mutex_lock(&queue->mutex);
 
     if (queue->size >= queue->capacity) {
@@ -192,7 +191,7 @@ lmp_admiral_message* lmp_admiral_queue_dequeue(lmp_admiral_queue* queue) {
     return msg;
 }
 
-lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet) {
+lmp_admiral_message* lmp_admiral_message_create(arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet) {
     u64 messageSize = sizeof(lmp_admiral_message) + LMP_PACKET_HEADER_SIZE + packet->payload_length + 1;
     lmp_admiral_message* message = arena_push(arena, messageSize);
 
@@ -210,7 +209,7 @@ lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_se
 // this function ends, we can safely pop the packet memory of the network arena and start again
 //
 // Do NOT share memory across threads!
-s8 lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
+b8 lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
     // NOTE(laith): this should be [dest][sender][EMPTY PAYLOAD BYTE] at the minimum
     if (packet->payload_length < 3) {
         return -1;
@@ -228,7 +227,7 @@ s8 lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
 
     lmp_admiral_message* message = lmp_admiral_message_create(queue->arena, destination, sender, packet);
 
-    s8 e = lmp_admiral_queue_enqueue(queue, message);
+    b8 e = lmp_admiral_queue_enqueue(queue, message);
     if (e == -1) {
         lmp_log_print(sender, destination, "Could not enqueue packet", LMP_PRINT_TYPE_ERROR);
         return -1;
@@ -325,7 +324,7 @@ int lmp_admiral_service_get_port(lmp_admiral_service service) {
     }
 }
 
-s8 lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd) {
+b8 lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd) {
     lmp_packet sendInitPacket = {0};
     lmp_result result = {0};
     lmp_packet_init(&sendInitPacket);
@@ -367,7 +366,7 @@ s8 lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd) {
     lmp_packet_init(&recvPacket);
 
     lmp_error error = lmp_net_recv_packet(fd, buffer, sizeof(buffer), &recvPacket, &result);
-    
+
     if (error != LMP_ERR_NONE) {
         printf("unable to recv packet\n");
         return 0;

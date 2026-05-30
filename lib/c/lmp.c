@@ -47,7 +47,7 @@ void lmp_packet_serialize(u8* buffer, size_t size, const lmp_packet* packet, lmp
         return;
     }
 
-    s32 version = 0;
+    i32 version = 0;
     for (size_t i = 0; i < ARR_LENGTH(lmp_versions); i++) {
         if (packet->version == lmp_versions[i]) {
             version = lmp_versions[i];
@@ -139,7 +139,7 @@ void lmp_packet_deserialize(const u8* buffer, size_t size, lmp_packet* packet, l
         return;
     }
 
-    s32 version = 0;
+    i32 version = 0;
     for (size_t i = 0; i < ARR_LENGTH(lmp_versions); i++) {
         if (buffer[0] == lmp_versions[i]) {
             version = buffer[0];

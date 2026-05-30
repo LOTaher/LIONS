@@ -29,7 +29,7 @@
 lmp_error   lmp_net_send_packet(u32 fd, const lmp_packet* packet, lmp_result* result);
 lmp_error   lmp_net_recv_packet(u32 fd, u8* buffer, size_t size, lmp_packet* packet, lmp_result* result);
 // NOTE(laith): DEPRECATED
-char*       lmp_net_get_client(u32 fd, mem_arena* arena);
+char*       lmp_net_get_client(u32 fd, arena* arena);
 u8          lmp_net_is_connection_alive(u32 fd);
 
 // ===============================================================
@@ -91,7 +91,7 @@ typedef struct {
 } lmp_admiral_message;
 
 typedef struct {
-    mem_arena*           arena;
+    arena*               arena;
     lmp_admiral_message* messages[255];
     u8                   size;
     u8                   capacity;
@@ -112,23 +112,23 @@ typedef struct {
 
 // --- Queue ------------------------------------------------------------
 void                 lmp_admiral_queue_init(lmp_admiral_queue* queue, u8 capacity);
-s8                   lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, lmp_admiral_message* message);
+b8                   lmp_admiral_queue_enqueue(lmp_admiral_queue* queue, lmp_admiral_message* message);
 lmp_admiral_message* lmp_admiral_queue_dequeue(lmp_admiral_queue* queue);
 
 // --- Packet ----------------------------------------------------------
-s8                   lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet);
+b8                   lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet);
 void                 lmp_admiral_packet_invalidate(lmp_packet* packet);
 void                 lmp_admiral_packet_sanitize(lmp_packet* packet);
 
 // --- Message ----------------------------------------------------------
-lmp_admiral_message* lmp_admiral_message_create(mem_arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet);
+lmp_admiral_message* lmp_admiral_message_create(arena* arena, lmp_admiral_service destination, lmp_admiral_service sender, lmp_packet* packet);
 
 // --- Service ----------------------------------------------------------
 // NOTE(laith): DEPRECATED
 lmp_admiral_service  lmp_admiral_service_map_from_client(char* client);
 char*                lmp_admiral_service_get_host(lmp_admiral_service service);
 int                  lmp_admiral_service_get_port(lmp_admiral_service service);
-s8                   lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd);
+b8                   lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd);
 
 // ===============================================================
 // Reception
