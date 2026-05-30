@@ -85,3 +85,42 @@ func ReadPacket(conn net.Conn) (lmp.LmpPacket, error) {
 
 	return pkt, nil
 }
+
+func SendHandshake(conn net.Conn, service int) error {
+	sendInitPacket := lmp.LmpPacket{
+		Version:       0x02,
+		Type:          lmp.LmpTypeInit,
+		Arg:           lmp.LmpArgInitInit,
+		Flags:         lmp.LmpFlagsNone,
+		Payload:       []byte{lmp.LmpPayloadEmpty},
+		PayloadLength: 1,
+	}
+
+	if err := SendPacket(conn, &sendInitPacket); err != nil {
+		return err
+	}
+
+	sendSendPacket := lmp.LmpPacket{
+		Version:       0x02,
+		Type:          lmp.LmpTypeSend,
+		Arg:           lmp.LmpArgSend,
+		Flags:         lmp.LmpFlagsNone,
+		Payload:       []byte{byte(Admiral), byte(service)},
+		PayloadLength: 2,
+	}
+
+	if err := SendPacket(conn, &sendSendPacket); err != nil {
+		return err
+	}
+
+	readPacket, err := ReadPacket(conn)
+	if err != nil {
+		return err
+	}
+
+	if readPacket.Arg != lmp.LmpArgInitAccept {
+		return errors.New("did not recieve accept packet from admiral")
+	}
+
+	return nil
+}
