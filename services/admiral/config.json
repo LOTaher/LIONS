@@ -35,8 +35,8 @@
     {
       "id": 4,
       "name": "laitt",
-      "hostname": "inferno",
-      "ip": "100.109.120.90",
+      "hostname": "mirage",
+      "ip": "100.113.240.39",
       "port": 1818,
       "color": "\u001b[38;5;226m"
     },
