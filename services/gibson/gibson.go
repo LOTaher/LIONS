@@ -10,15 +10,28 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/LOTaher/lmp"
+	"liblmp"
+	"lmp"
 )
 
 var LIONS_API_KEY = ""
 
-const ADMIRAL_ENDPOINT = "100.113.240.39:5321"
-const ENTRY_IP = "100.113.240.39"
-const ENTRY_PORT = 8800
+const (
+	ADMIRAL_ENDPOINT = "100.113.240.39:5321"
+	ENTRY_IP         = "100.113.240.39"
+	ENTRY_PORT       = 8800
+)
 
+const LIONS_LOGO = "[LIONS //]"
+const LIONS_LOGO_COLORED = LIONS_COLOR + LIONS_LOGO + COLOR_RESET
+
+const (
+	LIONS_COLOR          = "\x1b[38;5;220m"
+	SERVICE_COLOR_GIBSON = "\x1b[38;5;34m"
+	COLOR_RESET          = "\x1b[0m"
+)
+
+// NOTE(laith): update when adding new guest accounts
 var GUEST_LIST = map[string]bool{"guest1": true}
 
 func verifyBody(body []byte) error {
@@ -42,9 +55,12 @@ func createAdmiralConnection(pktChannel chan lmp.LmpPacket) {
 
 	conn, err := dial.Dial("tcp", ADMIRAL_ENDPOINT)
 	if err != nil {
-		fmt.Println(err)
-		fmt.Printf("Failed to connect to admiral\n")
+		fmt.Sprintf("%s Failed to connect to admiral\n", LIONS_LOGO_COLORED)
 		os.Exit(1)
+	}
+
+	if err := liblmp.SendHandshake(conn, int(liblmp.Gibson)); err != nil {
+		fmt.Sprintf("%s Failed to handshake admiral\n", LIONS_LOGO_COLORED)
 	}
 
 	for true {
@@ -101,28 +117,30 @@ func receptionHandler(pktChannel chan lmp.LmpPacket) http.HandlerFunc {
 			err = verifyBody(body)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, err.Error())
+				fmt.Fprint(w, err.Error())
 				return
 			}
 
-			var sendPacket lmp.LmpPacket = lmp.LmpPacketInit()
+			var sendPacket lmp.LmpPacket
+
+			// NOTE(laith): [Dest][Sender]
+			var admiralHeader = []byte{byte(liblmp.Reception), byte(liblmp.Gibson)}
+			payload := append(admiralHeader, body...)
 
 			sendPacket.Version = 2
 			sendPacket.Type = lmp.LmpTypeSend
 			sendPacket.Arg = lmp.LmpArgSend
-			sendPacket.Flags = 0
-			sendPacket.Payload = body
-			sendPacket.PayloadLength = len(body)
+			sendPacket.Flags = lmp.LmpFlagsNone
+			sendPacket.Payload = payload
+			sendPacket.PayloadLength = len(payload)
 
 			pktChannel <- sendPacket
-
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		fmt.Fprintf(w, "Sent request to reception")
-		return
 	}
 }
 
@@ -147,7 +165,8 @@ func main() {
 
 	go createAdmiralConnection(pktChannel)
 
-	fmt.Printf("Entry API Key: %s\n", LIONS_API_KEY)
+	fmt.Printf("%s Starting Gibson - HTTP Bridge - Version 1\n", LIONS_LOGO_COLORED)
+	fmt.Printf("%s API Key: %s\n", LIONS_LOGO_COLORED, LIONS_API_KEY)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/reception", receptionHandler(pktChannel))
