@@ -1,4 +1,4 @@
-/*  lt_arena.h - Definitions for my arena allocator implementation
+/*  lt_strings.h - Single file library for my strings implementation
     Copyright (C) 2026 splatte.dev
 
     This program is free software: you can redistribute it and/or modify
@@ -14,31 +14,29 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
-#ifndef LT_ARENA_H
-#define LT_ARENA_H
+#ifndef LT_STRING_H
+#define LT_STRING_H
 
+#include <string.h>
+
+#include "lt_arena.h"
 #include "lt_base.h"
 
-/* API Definitions */
 typedef struct {
-    u64 capacity;
-    u64 pos;
-} arena;
+  u8 *str;
+  u64 length;
+} string8;
 
-typedef struct {
-    arena* arena;
-    u64 pos;
-} arena_temp;
+#define str8(s) \
+    (string8){(u8 *)(s), sizeof(s) - 1}
+#define str8_fmt(s) \
+    (int)(s).length, (s).str
 
-arena*     arena_create(u64 capacity);
-void       arena_destroy(arena* arena);
-u64        arena_align_forward(u64 pos, u64 alignment);
-void*      arena_push(arena* arena, u64 size);
-void       arena_clear(arena* arena);
-u64        arena_mark(arena* arena);
-void       arena_pop(arena* arena, u64 mark);
+string8 str8_substring(string8 str, u64 start, u64 end);
+string8 str8_cstring(char *str);
+string8 str8_copy(string8 str, arena *arena);
+string8 str8_concat(string8 str1, string8 str2, arena *arena);
+b8      str8_compare(string8 str1, string8 str2);
+b8      str8_contains(string8 str, string8 substr);
 
-arena_temp arena_temp_begin(arena* arena);
-void       arena_temp_end(arena_temp arena);
-
-#endif // LT_ARENA_H
+#endif // LT_STRINGS_H

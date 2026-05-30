@@ -14,7 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
-
 #ifndef LT_BASE_H
 #define LT_BASE_H
 
@@ -22,60 +21,36 @@
 
 /* Type Definitions */
 
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-typedef uint8_t u8;
+typedef int8_t   i8;
+typedef int16_t  i16;
+typedef int32_t  i32;
+typedef int64_t  i64;
+typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-typedef float f32;
-typedef double f64;
+
+typedef i8       b8;
+typedef i32      b32;
+
+typedef float    f32;
+typedef double   f64;
 
 /* Utility Macros */
 
-// NOTE(laith): args must not be function calls or ++ / --
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) \
+    ((a) < (b) ? (a) : (b))
+#define MAX(a, b) \
+    ((a) > (b) ? (a) : (b))
 
-#define KiB(n) ((u64)(n) << 10)
-#define MiB(n) ((u64)(n) << 20)
-#define GiB(n) ((u64)(n) << 30)
+#define KiB(n) \
+    ((u64)(n) << 10)
+#define MiB(n) \
+    ((u64)(n) << 20)
+#define GiB(n) \
+    ((u64)(n) << 30)
 
-#define ARR_LENGTH(arr) (sizeof(arr) / sizeof((arr)[0]))
-
-#define unused(x) (void)(x)
-#define nostatic
-
-/* Platform Detection */
-
-#if defined(_WIN32) || defined(_WIN64)
-    #define OS_WINDOWS 1
-#else
-    #define OS_WINDOWS 0
-#endif
-
-#if defined(__linux__)
-    #define OS_LINUX 1
-#else
-    #define OS_LINUX 0
-#endif
-
-#if defined(__APPLE__) && defined(__MACH__)
-    #define OS_MAC 1
-#else
-    #define OS_MAC 0
-#endif
-
-// #if !OS_WINDOWS && !OS_LINUX && !OS_MAC
-//     #error Unsupported platform
-// #endif
-
-#ifdef DEBUG
-    #define LOG(m) printf("Debug: %s\n", m)
-#else
-    #define LOG(m)
-#endif
+#define ARR_LENGTH(arr) \
+    (sizeof(arr) / sizeof((arr)[0]))
 
 #endif // LT_BASE_H
