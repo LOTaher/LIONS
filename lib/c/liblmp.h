@@ -21,6 +21,7 @@
 #include "lt_base.h"
 #include "lmp.h"
 #include "lt_arena.h"
+#include "lt_string.h"
 
 // ===============================================================
 // Net
@@ -31,6 +32,37 @@ lmp_error   lmp_net_recv_packet(u32 fd, u8* buffer, size_t size, lmp_packet* pac
 // NOTE(laith): DEPRECATED
 char*       lmp_net_get_client(u32 fd, arena* arena);
 u8          lmp_net_is_connection_alive(u32 fd);
+
+// ===============================================================
+// Log
+// ===============================================================
+
+// TODO(laith): move service color definitions to admiral
+#define LMP_LOG_LIONS_COLOR             "\x1b[38;5;220m"
+
+#define LMP_LOG_TYPE_COLOR_INFO         "\x1b[38;5;27m"
+#define LMP_LOG_TYPE_COLOR_WARN         "\x1b[38;5;208m"
+#define LMP_LOG_TYPE_COLOR_ERROR        "\x1b[38;5;124m"
+
+#define LMP_LOG_SERVICE_COLOR_ADMIRAL   "\x1b[38;5;48m"
+#define LMP_LOG_SERVICE_COLOR_RECEPTION "\x1b[38;5;93m"
+#define LMP_LOG_SERVICE_COLOR_S2        "\x1b[38;5;201m"
+#define LMP_LOG_SERVICE_COLOR_GIBSON    "\x1b[38;5;34m"
+#define LMP_LOG_SERVICE_COLOR_LAITT     "\x1b[38;5;226m"
+#define LMP_LOG_SERVICE_COLOR_LIGHTCTL  "\x1b[38;5;213m"
+
+#define LMP_LOG_COLOR_RESET             "\x1b[0m"
+
+#define LMP_LOG_LIONS_LOGO_COLORED "\x1b[38;5;220m[LIONS //]\x1b[0m"
+
+typedef enum {
+    LMP_PRINT_TYPE_INFO,
+    LMP_PRINT_TYPE_WARN,
+    LMP_PRINT_TYPE_ERROR
+} lmp_log_print_type;
+
+void    lmp_log(string8 message);
+string8 lmp_log_build_service_string(arena *arena, string8 color, string8 hostname, string8 serviceName);
 
 // ===============================================================
 // Admiral
@@ -130,6 +162,10 @@ char*                lmp_admiral_service_get_host(lmp_admiral_service service);
 int                  lmp_admiral_service_get_port(lmp_admiral_service service);
 b8                   lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd);
 
+// --- Log ----------------------------------------------------------
+
+void lmp_admiral_log(lmp_admiral_service sender, char* hostname, string8 message, lmp_log_print_type type);
+
 // ===============================================================
 // Reception
 // ===============================================================
@@ -150,32 +186,5 @@ void lmp_laitt_send_message_packet(u32 fd, char* topic, lmp_packet* packet);
 
 // TODO ?:
 // void lmp_laitt_send_message_on(u32 fd, char* topic);
-
-// ===============================================================
-// Log
-// ===============================================================
-
-#define LMP_LOG_LIONS_COLOR             "\x1b[38;5;220m"
-
-#define LMP_LOG_TYPE_COLOR_INFO         "\x1b[38;5;27m"
-#define LMP_LOG_TYPE_COLOR_WARN         "\x1b[38;5;208m"
-#define LMP_LOG_TYPE_COLOR_ERROR        "\x1b[38;5;124m"
-
-#define LMP_LOG_SERVICE_COLOR_ADMIRAL   "\x1b[38;5;48m"
-#define LMP_LOG_SERVICE_COLOR_RECEPTION "\x1b[38;5;93m"
-#define LMP_LOG_SERVICE_COLOR_S2        "\x1b[38;5;201m"
-#define LMP_LOG_SERVICE_COLOR_GIBSON    "\x1b[38;5;34m"
-#define LMP_LOG_SERVICE_COLOR_LAITT     "\x1b[38;5;226m"
-#define LMP_LOG_SERVICE_COLOR_LIGHTCTL  "\x1b[38;5;213m"
-
-#define LMP_LOG_COLOR_RESET             "\x1b[0m"
-
-typedef enum {
-    LMP_PRINT_TYPE_INFO,
-    LMP_PRINT_TYPE_WARN,
-    LMP_PRINT_TYPE_ERROR
-} lmp_log_print_type;
-
-void lmp_log_print(lmp_admiral_service sender, lmp_admiral_service destination, const char* message, lmp_log_print_type type);
 
 #endif // LIBLMP_H

@@ -28,7 +28,26 @@
 #include "lt_arena.h"
 #include "liblmp.h"
 #include "lt_base.h"
+#include "lt_string.h"
 #include "lmp.h"
+
+static const char* lmp_log_lions =         "LIONS //";
+// static const char* lmp_log_lions_bracket = "[LIONS //]";
+
+static const char* lmp_log_print_type_colors[] = {
+    LMP_LOG_TYPE_COLOR_INFO,
+    LMP_LOG_TYPE_COLOR_WARN,
+    LMP_LOG_TYPE_COLOR_ERROR
+};
+
+static const char* lmp_log_print_service_colors[] = {
+    LMP_LOG_SERVICE_COLOR_ADMIRAL,
+    LMP_LOG_SERVICE_COLOR_RECEPTION,
+    LMP_LOG_SERVICE_COLOR_S2,
+    LMP_LOG_SERVICE_COLOR_GIBSON,
+    LMP_LOG_SERVICE_COLOR_LAITT,
+    LMP_LOG_SERVICE_COLOR_LIGHTCTL,
+};
 
 // ===============================================================
 // Net
@@ -229,11 +248,11 @@ b8 lmp_admiral_packet_queue(lmp_admiral_queue* queue, lmp_packet* packet) {
 
     b8 e = lmp_admiral_queue_enqueue(queue, message);
     if (e == -1) {
-        lmp_log_print(sender, destination, "Could not enqueue packet", LMP_PRINT_TYPE_ERROR);
+        // lmp_admiral_log(sender, "Could not enqueue packet", LMP_PRINT_TYPE_ERROR);
         return -1;
     }
 
-    lmp_log_print(sender, destination, "Added packet to queue", LMP_PRINT_TYPE_INFO);
+    // lmp_admiral_log(sender,  "Added packet to queue", LMP_PRINT_TYPE_INFO);
     return 1;
 }
 
@@ -380,6 +399,14 @@ b8 lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd) {
     return 1;
 }
 
+void lmp_admiral_log(lmp_admiral_service sender, char* hostname, string8 message, lmp_log_print_type type) {
+    time_t timestamp = time(NULL);
+    struct tm* time_info = localtime(&timestamp);
+
+    // [LIONS]  (hostname | service) hour:minute:second: message
+    printf("%s[%s]%s %s(%s | %s)%s %02d:%02d:%02d: %.*s\n", lmp_log_print_type_colors[type], lmp_log_lions, LMP_LOG_COLOR_RESET, lmp_log_print_service_colors[sender], hostname, lmp_admiral_services[sender], LMP_LOG_COLOR_RESET, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, str8_fmt(message));
+    return;
+}
 
 // ===============================================================
 // Laitt
@@ -393,30 +420,15 @@ b8 lmp_admiral_service_handshake(lmp_admiral_service service, u32 fd) {
 // Log
 // ===============================================================
 
-const char* lmp_log_lions =         "LIONS //";
-const char* lmp_log_lions_bracket = "[LIONS //]";
+void lmp_log(string8 message) {
+    printf("%s %.*s\n", LMP_LOG_LIONS_LOGO_COLORED, str8_fmt(message));
+}
 
-const char* lmp_log_print_type_colors[] = {
-    LMP_LOG_TYPE_COLOR_INFO,
-    LMP_LOG_TYPE_COLOR_WARN,
-    LMP_LOG_TYPE_COLOR_ERROR
-};
-
-const char* lmp_log_print_service_colors[] = {
-    LMP_LOG_SERVICE_COLOR_ADMIRAL,
-    LMP_LOG_SERVICE_COLOR_RECEPTION,
-    LMP_LOG_SERVICE_COLOR_S2,
-    LMP_LOG_SERVICE_COLOR_GIBSON,
-    LMP_LOG_SERVICE_COLOR_LAITT,
-    LMP_LOG_SERVICE_COLOR_LIGHTCTL,
-};
-
-void lmp_log_print(lmp_admiral_service sender, lmp_admiral_service destination, const char* message, lmp_log_print_type type) {
-    time_t timestamp = time(NULL);
-    struct tm* time_info = localtime(&timestamp);
-
-    // [LIONS]  (sender -> destination) hour:minute:second: message
-    printf("%s[%s]%s (%s%s%s -> %s%s%s) %02d:%02d:%02d: %s\n", lmp_log_print_type_colors[type], lmp_log_lions, LMP_LOG_COLOR_RESET, lmp_log_print_service_colors[sender], lmp_admiral_services[sender], LMP_LOG_COLOR_RESET,  lmp_log_print_service_colors[destination], lmp_admiral_services[destination], LMP_LOG_COLOR_RESET, time_info->tm_hour, time_info->tm_min, time_info->tm_sec, message);
-    return;
+string8 lmp_log_build_service_string(arena *arena, string8 color, string8 hostname, string8 serviceName) {
+    u64 logoLen = sizeof(LMP_LOG_LIONS_LOGO_COLORED) - 1;
+    u64 size = logoLen + 1 + color.length + hostname.length + serviceName.length + 10;
+    u8* buf = (u8*)arena_push(arena, size);
+    int written = snprintf((char *)buf, size, "%s %.*s(%.*s | %.*s)%s", LMP_LOG_LIONS_LOGO_COLORED, str8_fmt(color), str8_fmt(hostname), str8_fmt(serviceName), LMP_LOG_COLOR_RESET);
+    return (string8){buf, (u64)written};
 }
 
