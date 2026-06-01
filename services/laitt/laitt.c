@@ -31,26 +31,35 @@
 #include "../../lib/c/lt_base.h"
 #include "../../lib/c/lmp.h"
 #include "../../lib/c/liblmp.h"
+#include "../../lib/c/lt_string.h"
+
+static string8 SERVICE_NAME      = str8("laitt");
+static string8 SERVICE_HOSTNAME  = str8("inferno");
+static string8 SERVICE_COLOR     = str8("\x1b[38;5;226m");
 
 int main(void) {
-    mem_arena* networkArena = arena_create(KiB(1));
+    lmp_log(str8("Starting Laitt - MQTT Bridge - Version 1"));
+
+    arena* networkArena = arena_create(KiB(1));
+
+    string8 serviceString = lmp_log_build_service_string(networkArena, SERVICE_COLOR, SERVICE_HOSTNAME, SERVICE_NAME);
 
     struct mosquitto* mosq = mosquitto_new(NULL, 1, NULL);
     int c = mosquitto_connect(mosq, LAITT_MOSQUITTO_HOST, LAITT_MOSQUITTO_PORT, 60);
     if (c != MOSQ_ERR_SUCCESS) {
-        lmp_log_print(LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LAITT, "Error connecting to Mosquitto", LMP_PRINT_TYPE_ERROR);
+        fprintf(stderr, "%.*s Error connecting to Mosquitto\n", str8_fmt(serviceString));
         return 1;
     }
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
-        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to create socket", LMP_PRINT_TYPE_ERROR);
+        fprintf(stderr, "%.*s Failed to create socket\n", str8_fmt(serviceString));
         return 1;
     }
 
     int opt = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_ADMIRAL, "Failed to set socket option", LMP_PRINT_TYPE_ERROR);
+        fprintf(stderr, "%.*s Failed to set socket option\n", str8_fmt(serviceString));
         close(fd);
         return 1;
     }
@@ -62,21 +71,19 @@ int main(void) {
 
     int b = bind(fd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
     if (b == -1) {
-        lmp_log_print(LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LAITT, "Failed to bind to socket", LMP_PRINT_TYPE_ERROR);
+        fprintf(stderr, "%.*s Failed to bind to address\n", str8_fmt(serviceString));
         close(fd);
         return 1;
     }
 
     int l = listen(fd, SOMAXCONN);
     if (l == -1) {
-        lmp_log_print(LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LAITT, "Failed to bind to listen", LMP_PRINT_TYPE_ERROR);
+        fprintf(stderr, "%.*s Failed to listen\n", str8_fmt(serviceString));
         close(fd);
        return 1;
     }
 
-    char logBuffer[255];
-    snprintf(logBuffer, sizeof(logBuffer), "Listening on %d", ADMIRAL_PORT_LAITT);
-    lmp_log_print(LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LAITT, logBuffer, LMP_PRINT_TYPE_INFO);
+    lmp_log(str8("Listening on 1818"));
 
     lmp_packet readPacket;
     lmp_result result;
@@ -93,16 +100,14 @@ int main(void) {
 
         int connectionFd = accept(fd, (struct sockaddr *)&clientAddr, &clientLength);
         if (connectionFd == -1) {
-            lmp_log_print(LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LAITT, "Failed to accept connection", LMP_PRINT_TYPE_ERROR);
+            fprintf(stderr, "%.*s Failed to accept connection\n", str8_fmt(serviceString));
             continue;
         }
-
-        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Successfully connected", LMP_PRINT_TYPE_INFO);
 
         lmp_error error = lmp_net_recv_packet(connectionFd, buffer, sizeof(buffer), &readPacket, &result);
         if (error != LMP_ERR_NONE) {
             close(connectionFd);
-            lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Bad packet. Closing connection", LMP_PRINT_TYPE_ERROR);
+            fprintf(stderr, "%.*s Recieved bad packet\n", str8_fmt(serviceString));
             arena_clear(networkArena);
             continue;
         }
@@ -110,7 +115,7 @@ int main(void) {
         // TODO(laith): using a specific tailored payload, figure out if its subscribe or public, which topic string, and then the payload
 
         mosquitto_publish(mosq, NULL, LAITT_LIGHTS_TOPIC_SET, readPacket.payload_length, readPacket.payload, 0, NULL);
-        lmp_log_print(LMP_ADMIRAL_SERVICE_ADMIRAL, LMP_ADMIRAL_SERVICE_LAITT, "Sent payload. Closing connection", LMP_PRINT_TYPE_INFO);
+        printf("%.*s Sent payload to topic: %s\n", str8_fmt(serviceString), LAITT_LIGHTS_TOPIC_SET);
 
         close(connectionFd);
         arena_clear(networkArena);
