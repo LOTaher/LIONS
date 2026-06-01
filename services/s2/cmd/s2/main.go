@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"s2/internal/config"
+	"syscall"
 	"time"
 
 	"liblmp"
@@ -26,6 +29,8 @@ const (
 
 func main() {
 	fmt.Printf("%s Starting S2 - Scheduling Service - Version 2\n", LIONS_LOGO_COLORED)
+
+	done := make(chan bool, 1)
 
 	config, err := config.Read()
 	if err != nil {
@@ -53,7 +58,20 @@ func main() {
 
 	liblmp.SendHandshake(conn, int(liblmp.S2))
 
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM)
+		<-sigchan
+
+		done <- true
+	}()
+
 	for {
+		if <-done {
+			fmt.Printf("%s Closing S2 - Scheduling Service - Version 2\n", LIONS_LOGO_COLORED)
+			os.Exit(0)
+		}
+
 		currentTime := time.Now().Format(time.TimeOnly)
 		fmt.Printf("\r%s === %s ===", LIONS_LOGO_COLORED, currentTime)
 
