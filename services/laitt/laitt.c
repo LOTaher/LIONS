@@ -37,6 +37,11 @@ static string8 SERVICE_NAME      = str8("laitt");
 static string8 SERVICE_HOSTNAME  = str8("inferno");
 static string8 SERVICE_COLOR     = str8("\x1b[38;5;226m");
 
+#define LAITT_MOSQUITTO_PORT    1883
+#define LAITT_MOSQUITTO_HOST    "100.109.120.90"
+#define LAITT_LIGHTS_TOPIC      "zigbee2mqtt/bedroom_lights"
+#define LAITT_LIGHTS_TOPIC_SET  "zigbee2mqtt/bedroom_lights/set"
+
 int main(void) {
     lmp_log(str8("Starting Laitt - MQTT Bridge - Version 1"));
 

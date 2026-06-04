@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     struct sockaddr_in admiralAddr = {0};
     admiralAddr.sin_family = AF_INET;
     admiralAddr.sin_port = htons(ADMIRAL_PORT_ADMIRAL);
-    admiralAddr.sin_addr.s_addr = inet_addr(ADMIRAL_HOST_ADMIRAL);
+    admiralAddr.sin_addr.s_addr = inet_addr("10.1.0.1");
 
     int c = connect(fd, (struct sockaddr*)&admiralAddr, sizeof(admiralAddr));
     if (c == -1) {
@@ -171,6 +171,30 @@ if (strcmp(argv[1], "darker") == 0) {
 
     if (strcmp(argv[1], "bed") == 0) {
         string8 message = str8("{\"brightness\":31,\"color\":{\"hue\":25,\"saturation\":95,\"x\":0.5267,\"y\":0.4133},\"color_temp\":498,\"transition\":0.5,\"state\":\"ON\"}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
+        packet.payload = payload.str;
+        packet.payload_length = payload.length;
+        lmp_net_send_packet(fd, &packet, &result);
+        if (result.error != LMP_ERR_NONE) {
+            fprintf(stderr, "%.*s Could not send packet\n", str8_fmt(serviceString));
+        }
+        return 0;
+    }
+
+    if (strcmp(argv[1], "on") == 0) {
+        string8 message = str8("{\"state\":\"ON\",\"transition\":0.5}");
+        string8 payload = str8_concat(admiralPayload, message, arena);
+        packet.payload = payload.str;
+        packet.payload_length = payload.length;
+        lmp_net_send_packet(fd, &packet, &result);
+        if (result.error != LMP_ERR_NONE) {
+            fprintf(stderr, "%.*s Could not send packet\n", str8_fmt(serviceString));
+        }
+        return 0;
+    }
+
+    if (strcmp(argv[1], "off") == 0) {
+        string8 message = str8("{\"state\":\"OFF\",\"transition\":0.5}");
         string8 payload = str8_concat(admiralPayload, message, arena);
         packet.payload = payload.str;
         packet.payload_length = payload.length;
