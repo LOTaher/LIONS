@@ -25,7 +25,7 @@ LIONS is currently composed of the following services:
 - **s2**: scheduling service that sends LMP packets to different services through admiral.
 - **gibson**: http bridge for LMP
 - **laitt**: mqtt bridge for LMP
-- **lightctl**: cli tool to control the lights in my room
+- **lights**: cli tool to control the lights in my room
 
 Legacy versions of services can be found in the `legacy/` directory. These versions do not work with the current library implementation. The current `lib/c/liblmp` library is going through a rewrite and is not functional at the moment.
 
