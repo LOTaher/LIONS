@@ -65,7 +65,7 @@ void    lmp_log(string8 message);
 string8 lmp_log_build_service_string(arena *arena, string8 color, string8 hostname, string8 serviceName);
 
 // ===============================================================
-// Admiral
+// Admiral (LEGACY)
 // ===============================================================
 
 #define ADMIRAL_BACKLOG                     15
@@ -171,20 +171,5 @@ void lmp_admiral_log(lmp_admiral_service sender, char* hostname, string8 message
 // ===============================================================
 
 #define RECEPTION_BACKLOG 15
-
-// ===============================================================
-// Laitt
-// ===============================================================
-
-#define LAITT_MOSQUITTO_PORT    1883
-#define LAITT_MOSQUITTO_HOST    "100.109.120.90"
-#define LAITT_LIGHTS_TOPIC      "zigbee2mqtt/bedroom_lights"
-#define LAITT_LIGHTS_TOPIC_SET  "zigbee2mqtt/bedroom_lights/set"
-
-// NOTE(laith): fd should be a connection to laitt
-void lmp_laitt_send_message_packet(u32 fd, char* topic, lmp_packet* packet);
-
-// TODO ?:
-// void lmp_laitt_send_message_on(u32 fd, char* topic);
 
 #endif // LIBLMP_H
