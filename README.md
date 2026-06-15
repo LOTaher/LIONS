@@ -12,10 +12,11 @@ LIONS runs on all my hardware. My hardware shares a naming convention: Counter-S
 - **nuke** is a custom built PC running Debian Stable. It has an AMD Ryzen 5 CPU, 1 TB SSD, two 4 TB HDDS, and a NVIDIA GTX 1060 GPU.
 - **inferno** is a Raspberry Pi 4 running a headless Debian Lite.
 - **ancient** is a Dell Optiplex 7040 (SFF) running FreeBSD 14.4-RELEASE. It has two 500 GB HDDs.
-  - The jails on my FreeBSD host are named after the different forms of rotom and all have a different use case:
+  - The jails (and VMs, powered by bhyve) on my FreeBSD host are named after the different forms of rotom and all have a different use case:
     - **wash** is running most LIONS services
     - **heat** is hosting my personal website and other public facing services
-    - **mow** is running my homelab's file syncing system using syncthing
+    - **mow** is running my homelab's file syncing and sharing system
+    - **frost** (VM, Debian) is running steam game servers
 - **anubis** is a custom built PC duel booting Debian Stable and Windows. It has an AMD Ryzen 7 CPU, 1 TB SSD, and a AMD Radeon RX 6600 GPU.
 
 LIONS is currently composed of the following services:
