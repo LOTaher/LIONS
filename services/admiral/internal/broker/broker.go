@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	"admiral/internal/logger"
-	// "admiral/internal/message"
 	"admiral/internal/service"
 )
 
