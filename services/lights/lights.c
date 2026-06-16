@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     }
 
     arena* arena = arena_create(KiB(1));
-    u8 admiralHeader[2] = { LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LIGHTCTL };
+    u8 admiralHeader[2] = { LMP_ADMIRAL_SERVICE_LAITT, LMP_ADMIRAL_SERVICE_LIGHTS };
     string8 admiralPayload = { admiralHeader, sizeof(admiralHeader) };
 
     string8 serviceString = lmp_log_build_service_string(arena, SERVICE_COLOR, SERVICE_HOSTNAME, SERVICE_NAME);
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    lmp_admiral_service_handshake(LMP_ADMIRAL_SERVICE_LIGHTCTL, fd);
+    lmp_admiral_service_handshake(LMP_ADMIRAL_SERVICE_LIGHTS, fd);
 
     lmp_packet packet;
     lmp_result result;
