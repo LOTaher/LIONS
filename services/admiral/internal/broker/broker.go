@@ -7,23 +7,37 @@ import (
 	"liblmp"
 	"lmp"
 	"net"
+	"slices"
 
 	"admiral/internal/logger"
-	"admiral/internal/message"
+	// "admiral/internal/message"
 	"admiral/internal/service"
 )
 
 type Connection struct {
+	id        uint16
 	service   service.Service
 	appConn   net.Conn
 	sonarConn net.Conn
+}
+
+type EventType int
+
+const (
+	CONNECTED EventType = iota
+	DISCONNECTED
+)
+
+type Event struct {
+	connection Connection
+	eventType  EventType
 }
 
 type Broker struct {
 	Services    map[int]service.Service
 	Connections []Connection
 	strictMode  bool
-	messages    chan message.Message
+	events      chan Event
 }
 
 func New(configServices []service.Service, strictMode bool) Broker {
@@ -31,6 +45,7 @@ func New(configServices []service.Service, strictMode bool) Broker {
 	return Broker{
 		Services:   services,
 		strictMode: strictMode,
+		events:     make(chan Event, 8),
 	}
 }
 
@@ -42,6 +57,8 @@ func (b *Broker) Start() error {
 	}
 
 	fmt.Printf("%s Starting Admiral - Message Broker - Version 2\n", logger.LIONS_LOGO_COLORED)
+
+	go b.handleEvents()
 
 	for {
 		conn, err := listener.Accept()
@@ -57,16 +74,34 @@ func (b *Broker) Start() error {
 			continue
 		}
 
-		logger.Log(b.Services[service.Id], "CONNECTED", logger.Info)
 		connection := Connection{
 			appConn:   conn,
 			sonarConn: nil,
 			service:   service,
 		}
+		b.events <- Event{connection, CONNECTED}
+	}
+}
 
-		b.Connections = append(b.Connections, connection)
+func (b *Broker) handleEvents() {
+	for {
+		event := <-b.events
 
-		go b.serveConnection(connection)
+		switch event.eventType {
+		case CONNECTED:
+			logger.Log(b.Services[event.connection.service.Id], "CONNECTED", logger.Info)
+			b.Connections = append(b.Connections, event.connection)
+			go b.serveConnection(event.connection)
+		case DISCONNECTED:
+			logger.Log(event.connection.service, "DISCONNECTED", logger.Warn)
+			for idx, brokerConn := range b.Connections {
+				if event.connection.service.Id == brokerConn.service.Id {
+					b.Connections = slices.Delete(b.Connections, idx, idx+1)
+					break
+				}
+			}
+			event.connection.appConn.Close()
+		}
 	}
 }
 
@@ -75,8 +110,7 @@ func (b *Broker) serveConnection(conn Connection) {
 		packet, err := liblmp.ReadPacket(conn.appConn)
 		if err != nil {
 			if err == io.EOF {
-				logger.Log(conn.service, "DISCONNECTED", logger.Warn)
-				conn.appConn.Close()
+				b.events <- Event{conn, DISCONNECTED}
 				break
 			} else {
 				logger.Log(conn.service, "sent bad packet: "+err.Error(), logger.Error)
